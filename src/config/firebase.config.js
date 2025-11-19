@@ -24,10 +24,8 @@ const firebaseApp = initializeApp({
     credential: cert(serviceAccount)
 });
 
-// Obtener la instancia de Firestore, que usaremos para interactuar con la base de datos.
-const db = getFirestore(firebaseApp);
+
+// Obtener la instancia de Firestore
+export const db = getFirestore(firebaseApp);
 
 console.log('[FIRESTORE] Conexión a Firestore establecida.');
-
-// Exportamos la instancia de Firestore para que los modelos la utilicen.
-export default db;

@@ -1,6 +1,7 @@
 // user.model.js — FIREBASE ADMIN SDK CORRECTO
 
-import db from "../config/firebase.config.js"; // Este es el Admin SDK (bien)
+import { db } from "../config/firebase.config.js";
+
 const COLLECTION_NAME = "USUARIOS";
 const userCollection = db.collection(COLLECTION_NAME);
 
