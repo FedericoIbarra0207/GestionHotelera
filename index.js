@@ -1,30 +1,37 @@
-
-
-// 1. Importar dependencias
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import './src/config/firebase.config.js'; // <-- IMPORTACIÓN DE FIREBASE PARA INICIALIZACIÓN
-import { notFoundMiddleware, errorHandlerMiddleware } from './src/middlewares/error.middleware.js';
-// ...
-// 2. Cargar variables de entorno
+// Cargar variables de entorno lo antes posible
 dotenv.config();
+
+// Importamos los middlewares de error
+import { notFoundMiddleware, errorHandlerMiddleware } from './src/middlewares/error.middleware.js'; 
+import './src/config/firebase.config.js'; // Conexión a DB
+
+// --- IMPORTAR RUTAS ---
+import authRoutes from './src/routes/auth.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 3. Middlewares Globales
-app.use(cors()); // Habilitar CORS [cite: 88]
-app.use(bodyParser.json()); // Habilitar body-parser para JSON [cite: 88]
+// Middlewares Globales
+app.use(cors()); 
+app.use(bodyParser.json()); 
 
-// (Aquí se agregarán las rutas más adelante)
+// --- MONTAJE DE RUTAS ---
+app.use('/api/auth', authRoutes); // Montar las rutas de autenticación
+// app.use('/api/users', userRoutes); 
+// app.use('/api/habitaciones', habitacionRoutes); 
+// ------------------------
 
-// 4. Middleware para rutas no encontradas (404)
-app.use(notFoundMiddleware); // Usar el middleware 404 [cite: 88]
-app.use(errorHandlerMiddleware); // Middleware general de manejo de errores
+// --- MANEJO DE ERRORES ---
+// 1. Middleware para rutas no encontradas (404)
+app.use(notFoundMiddleware); 
+// 2. Middleware GLOBAL de manejo de errores (500)
+app.use(errorHandlerMiddleware);
+// -------------------------
 
-// 5. Inicializar Servidor
 app.listen(PORT, () => {
     console.log(`[SERVER] Servidor corriendo en http://localhost:${PORT}`);
 });

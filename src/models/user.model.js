@@ -1,48 +1,36 @@
+// user.model.js — FIREBASE ADMIN SDK CORRECTO
 
-// Importamos la instancia de Firestore que configuramos previamente
-import db from '../config/firebase.config.js';
-import { collection, doc, getDoc, getDocs, addDoc, query, where, updateDoc, deleteDoc } from 'firebase/firestore'; // Importamos funciones necesarias para CRUD
-
-// Nombre de la colección en Firestore para USUARIOS
-const COLLECTION_NAME = 'USUARIOS';
+import db from "../config/firebase.config.js"; // Este es el Admin SDK (bien)
+const COLLECTION_NAME = "USUARIOS";
 const userCollection = db.collection(COLLECTION_NAME);
 
 /**
- * Busca todos los usuarios registrados en la colección.
- * @returns {Array} Lista de usuarios con sus IDs.
+ * Obtener todos los usuarios
  */
 export const getAllUsers = async () => {
     try {
-        // Obtenemos todos los documentos de la colección
         const snapshot = await userCollection.get();
-        // Mapeamos los documentos para incluir el ID de Firestore y los datos del documento
-        const users = snapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-        return users;
     } catch (error) {
         console.error("Error al obtener todos los usuarios:", error);
-        // Lanzamos un error para que la capa de Servicio/Controlador lo maneje
         throw new Error("Fallo al acceder a la lista de usuarios.");
     }
 };
 
 /**
- * Busca un usuario por su ID de documento.
- * @param {string} userId - ID del documento de usuario.
- * @returns {object|null} El objeto usuario o null si no existe.
+ * Obtener usuario por ID
  */
-export const getUserById = async (userId) => {
+export const getUserById = async (id) => {
     try {
-        const userDoc = await userCollection.doc(userId).get();
-        if (!userDoc.exists) {
-            return null; // El usuario no existe
-        }
-        return {
-            id: userDoc.id,
-            ...userDoc.data()
-        };
+        const docRef = userCollection.doc(id);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) return null;
+
+        return { id: docSnap.id, ...docSnap.data() };
     } catch (error) {
         console.error("Error al obtener el usuario por ID:", error);
         throw new Error("Fallo al buscar el usuario.");
@@ -50,82 +38,61 @@ export const getUserById = async (userId) => {
 };
 
 /**
- * Busca un usuario específico por su dirección de email (clave para el login).
- * @param {string} email - Correo electrónico del usuario.
- * @returns {object|null} El objeto usuario o null si no existe.
+ * Obtener usuario por Email (Login)
  */
 export const getUserByEmail = async (email) => {
     try {
-        // Creamos una consulta para encontrar el documento donde el campo 'email' coincide
-        const userQuery = await userCollection.where('email', '==', email).limit(1).get();
+        const snapshot = await userCollection.where("email", "==", email).limit(1).get();
 
-        if (userQuery.empty) {
-            return null;
-        }
+        if (snapshot.empty) return null;
 
-        // Devolvemos el primer (y único) resultado
-        const userDoc = userQuery.docs[0];
-        return {
-            id: userDoc.id,
-            ...userDoc.data()
-        };
+        const doc = snapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
     } catch (error) {
-        console.error("Error al obtener el usuario por email:", error);
+        console.error("Error al obtener usuario por email:", error);
         throw new Error("Fallo al buscar el usuario por email.");
     }
 };
 
 /**
- * Crea un nuevo usuario en la base de datos.
- * @param {object} userData - Objeto con los datos del usuario (incluyendo la contraseña hasheada).
- * @returns {object} El objeto del usuario creado con su ID.
+ * Crear usuario
  */
 export const createUser = async (userData) => {
     try {
-        // Utilizamos add() para dejar que Firestore genere el ID automáticamente
-        const userRef = await userCollection.add({
+        const docRef = await userCollection.add({
             ...userData,
-            createdAt: new Date() // Sello de tiempo de creación
+            createdAt: new Date(),
         });
-        
-        // Retornamos el objeto creado
-        return {
-            id: userRef.id,
-            ...userData
-        };
+
+        return { id: docRef.id, ...userData };
     } catch (error) {
-        console.error("Error al crear el usuario:", error);
+        console.error("Error al crear usuario:", error);
         throw new Error("Fallo al crear el registro de usuario.");
     }
 };
 
 /**
- * Actualiza los datos de un usuario existente.
- * @param {string} userId - ID del usuario a actualizar.
- * @param {object} updateData - Datos a modificar.
+ * Actualizar usuario
  */
-export const updateUser = async (userId, updateData) => {
+export const updateUser = async (id, updateData) => {
     try {
-        const userRef = userCollection.doc(userId);
-        await userRef.update(updateData);
-        console.log(`[MODEL] Usuario ${userId} actualizado.`);
+        await userCollection.doc(id).update(updateData);
+        console.log(`[MODEL] Usuario ${id} actualizado.`);
     } catch (error) {
-        console.error("Error al actualizar el usuario:", error);
+        console.error("Error al actualizar usuario:", error);
         throw new Error("Fallo al actualizar el usuario.");
     }
 };
 
 /**
- * Elimina un usuario de la base de datos.
- * @param {string} userId - ID del usuario a eliminar.
+ * Eliminar usuario
  */
-export const deleteUser = async (userId) => {
+export const deleteUser = async (id) => {
     try {
-        const userRef = userCollection.doc(userId);
-        await userRef.delete();
-        console.log(`[MODEL] Usuario ${userId} eliminado.`);
+        await userCollection.doc(id).delete();
+        console.log(`[MODEL] Usuario ${id} eliminado.`);
     } catch (error) {
-        console.error("Error al eliminar el usuario:", error);
+        console.error("Error al eliminar usuario:", error);
         throw new Error("Fallo al eliminar el usuario.");
     }
 };
