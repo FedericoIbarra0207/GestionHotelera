@@ -1,0 +1,45 @@
+/* --- NAV FIX: ahora sí se ven los botones --- */
+h1.app-title {
+  font-family: 'Arial', sans-serif;
+  color: #302d2d; /* color oscuro para buen contraste */
+}
+
+.nav-pills {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  /* Fondo suave beige translúcido (visible sobre fondo azul o verde) */
+  background: rgba(188, 128, 49, 0.4);
+
+  padding: 0.5rem 0.8rem;
+  border-radius: 14px;
+
+  /* Borde visible */
+  border: 1px solid rgba(245, 230, 210, 0.7);
+
+  backdrop-filter: blur(3px); /* mejora el contraste */
+}
+
+.nav-pills .nav-link {
+  color: #5c4633;                 /* marrón suave (beige/dorado) */
+  background: rgba(255,255,255,0.8);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-weight: 500;
+  border: 1px solid rgba(0,0,0,0.08);
+  transition: all 0.15s ease-in-out;
+}
+
+.nav-pills .nav-link:hover {
+  background: rgba(255,255,255,1);
+  color: #2b1f15;
+  transform: translateY(-1px);
+}
+
+.nav-pills .nav-link.active {
+  background: #ffffff;           
+  color: #2b1f15;
+  border-color: rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
