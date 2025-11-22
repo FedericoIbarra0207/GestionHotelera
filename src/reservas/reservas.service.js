@@ -10,6 +10,7 @@
 
 import * as ReservasModel from "./reservas.model.js";
 import * as HabitacionesModel from "../habitaciones/habitaciones.model.js";
+import * as DisponibilidadesService from "../disponibilidades/disponibilidades.service.js";
 
 // Validación de fechas
 const validarFechas = (inicio, fin) => {
@@ -63,13 +64,41 @@ export const crearReserva = async (data, usuarioToken) => {
   verificarSolapamiento(reservas, fechaInicio, fechaFin);
 
   // Crear la reserva
-  return await ReservasModel.create({
+  const created = await ReservasModel.create({
     usuarioId,
     habitacionId,
     fechaInicio,
     fechaFin,
     estado: "RESERVADA",
   });
+
+  // Marcar disponibilidades: recorrer días desde fechaInicio (inclusive) hasta fechaFin (exclusive)
+  try {
+    const start = new Date(fechaInicio);
+    const end = new Date(fechaFin);
+    const dates = [];
+    const cur = new Date(start);
+    while (cur < end) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, '0');
+      const d = String(cur.getDate()).padStart(2, '0');
+      dates.push(`${y}-${m}-${d}`);
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    for (const fecha of dates) {
+      try {
+        await DisponibilidadesService.actualizar(habitacionId, fecha, false);
+      } catch (e) {
+        // no detener el flujo por fallo de disponibilidad, solo loguear
+        console.error('No se pudo actualizar disponibilidad para', fecha, e);
+      }
+    }
+  } catch (e) {
+    console.error('Error marcando disponibilidades tras crear reserva:', e);
+  }
+
+  return created;
 };
 
 export const listarReservas = async () => {

@@ -22,6 +22,7 @@ import reservasRoutes from "./src/reservas/reservas.routes.js";
 import consumosRoutes from "./src/consumos/consumos.routes.js";
 import pagosRoutes from "./src/pagos/pagos.routes.js";
 import disponibilidadesRoutes from "./src/disponibilidades/disponibilidades.routes.js";
+import usersRoutes from './src/routes/user.routes.js';
 
 
 const app = express();
@@ -31,10 +32,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Servir archivos estáticos (frontend de demo)
+app.use(express.static('public'));
+
 // --------------------------------------
 // RUTAS PÚBLICAS (sin token)
 // --------------------------------------
 app.use('/api/auth', authRoutes);
+
+// Usuarios (listado) - requiere auth + ADMIN
+app.use('/api/users', usersRoutes);
 
 // --------------------------------------
 // RUTAS PRIVADAS (requieren token)

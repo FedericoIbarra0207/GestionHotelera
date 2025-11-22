@@ -29,4 +29,17 @@ export const registerNewUser = async (req, res, next) => {
     }
 };
 
+/**
+ * Controlador para listar usuarios públicos (solo ADMIN)
+ */
+export const listUsers = async (req, res, next) => {
+    try {
+        const users = await userService.getAllPublicUsers();
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Error en controller listar usuarios:", error);
+        next(error);
+    }
+};
+
 // ... Aquí irán los otros controladores CRUD de Usuarios (getAll, getById, etc.) ...
