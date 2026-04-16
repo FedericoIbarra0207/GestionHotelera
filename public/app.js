@@ -1,28 +1,101 @@
-/**
- * Frontend demo (estático)
- * -----------------------
- * Archivo: public/app.js
- * Propósito: interfaz mínima para mostrar la API REST del proyecto.
- * Funcionalidades:
- *  - Login / registro
- *  - Listar usuarios (ADMIN)
- *  - Listar habitaciones (tipo, precio)
- *  - Crear reserva con validación de disponibilidad (consulta disponibilidades)
- *  - Manejo de token en localStorage y wrapper `authFetch` que añade Authorization
- */
-// Frontend demo minimal - usa fetch y localStorage
-const base = (window.__API_BASE__ = window.__API_BASE__ || (location.origin + '/api'));
+/
 
-function getToken() {
-  return localStorage.getItem('token');
+// Smooth scroll para links internos - 
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        
+        // No prevenir si es solo "#"
+        if (href === '#') return;
+        
+        const target = document.querySelector(href);
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Manejo del formulario de contacto
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+    contactForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Obtener datos del formulario
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+        
+        // Mostrar mensaje de éxito
+        alert('✅ Gracias por tu interés. Nos pondremos en contacto pronto.');
+        this.reset();
+    });
 }
 
-function setToken(t) {
-  if (t) localStorage.setItem('token', t);
-  else localStorage.removeItem('token');
-  renderToken();
-  renderUserInfo();
+// Efecto parallax en hero
+window.addEventListener('scroll', function() {
+    const hero = document.querySelector('.hero');
+    if (hero) {
+        const scrollPosition = window.pageYOffset;
+        hero.style.backgroundPosition = `0 ${scrollPosition * 0.5}px`;
+    }
+});
+
+// Animación de entrada de elementos
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -100px 0px'
+};
+
+const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, observerOptions);
+
+document.querySelectorAll('.feature-card, .benefit-item').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'all 0.6s ease';
+    observer.observe(el);
+});
+
+// Contador de stats (animación)
+function animateCounter(element, target, duration = 2000) {
+    let current = 0;
+    const increment = target / (duration / 16);
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            current = target;
+            clearInterval(timer);
+        }
+        element.textContent = Math.floor(current);
+    }, 16);
 }
+
+// Iniciar contadores cuando se ve la sección
+const statsElements = document.querySelectorAll('.stat-number');
+const statsObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const target = parseInt(entry.target.textContent);
+            animateCounter(entry.target, target);
+            statsObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.5 });
+
+statsElements.forEach(el => statsObserver.observe(el));
+
+console.log('✅ Landing Page cargado correctamente');
 
 function authFetch(url, opts = {}) {
   const headers = opts.headers || {};
