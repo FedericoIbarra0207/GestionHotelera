@@ -1,84 +1,120 @@
+import bcrypt from "bcryptjs";
+import * as userModel from "../models/user.model.js";
 
-import * as userModel from '../models/user.model.js';
-import bcrypt from 'bcryptjs';
+const SALT_ROUNDS = 10;
+const ROLES_VALIDOS = ["ADMIN", "RECEPCIONISTA"];
 
-const SALT_ROUNDS = 10; 
+const toPublicUser = (user) => {
+  const { password, ...publicUser } = user;
+  return publicUser;
+};
 
-/**
- * Servicio para registrar un nuevo usuario.
- * @param {object} userData - Datos del usuario (email, password, nombre, rol).
- * @returns {object} El nuevo usuario creado (sin la contraseña).
- */
+const normalizarUsuario = (userData) => {
+  const nombre = String(userData.nombre || "").trim();
+  const email = String(userData.email || "").trim().toLowerCase();
+  const password = String(userData.password || "");
+  const rol = String(userData.rol || "RECEPCIONISTA").trim().toUpperCase();
+
+  if (!nombre || !email || !password) {
+    const error = new Error("Nombre, email y contrasena son obligatorios.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const error = new Error("El email no tiene un formato valido.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (password.length < 8) {
+    const error = new Error("La contrasena debe tener al menos 8 caracteres.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (!ROLES_VALIDOS.includes(rol)) {
+    const error = new Error("Rol invalido. Solo se permiten ADMIN o RECEPCIONISTA.");
+    error.status = 400;
+    throw error;
+  }
+
+  return { nombre, email, password, rol };
+};
+
 export const registerUser = async (userData) => {
-    try {
-        // 1. Verificar si el email ya existe
-        const existingUser = await userModel.getUserByEmail(userData.email);
-        if (existingUser) {
-            const error = new Error("El email ya se encuentra registrado.");
-            error.statusCode = 400; 
-            throw error; 
-        }
-// 2. Hashear la contraseña
-const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS); // <-- ESTA LÍNEA ES CRÍTICA
-        
-const userToCreate = {
-    email: userData.email,
-    password: hashedPassword, // <-- Asegúrate que se guarda el hash
-    nombre: userData.nombre,
-    rol: userData.rol || 'CLIENTE', 
+  const user = normalizarUsuario(userData);
+  const existingUser = await userModel.getUserByEmail(user.email);
+
+  if (existingUser) {
+    const error = new Error("El email ya se encuentra registrado.");
+    error.status = 409;
+    throw error;
+  }
+
+  const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
+  const newUser = await userModel.createUser({
+    email: user.email,
+    password: hashedPassword,
+    nombre: user.nombre,
+    rol: user.rol,
+    activo: true,
+  });
+
+  return toPublicUser(newUser);
 };
 
-// 3. Crear el usuario
-const newUser = await userModel.createUser(userToCreate);
-// ...
-        
-        const { password, ...publicData } = newUser;
-        return publicData;
-
-    } catch (error) {
-        // --- INICIO DE LA MODIFICACIÓN (DEBUG) ---
-
-        // Si el error ya tiene un statusCode (como el 400), lo relanzamos
-        if (error.statusCode) throw error;
-
-        // ¡IMPORTANTE! Mostramos el error ORIGINAL de Firestore en la consola
-        console.error("--- ERROR DETALLADO (user.service.js) ---");
-        console.error(error);
-        console.error("------------------------------------------");
-
-        // Mantenemos el mensaje genérico para el cliente (Postman)
-        throw new Error("Error en la lógica de registro de usuario.");
-        
-        // --- FIN DE LA MODIFICACIÓN ---
-    }
-};
-
-
-/**
- * Obtiene todos los usuarios y remueve sus contraseñas.
- * @returns {Array} Lista de usuarios públicos.
- */
 export const getAllPublicUsers = async () => {
-    const users = await userModel.getAllUsers();
-    return users.map(user => {
-        const { password, ...publicUser } = user;
-        return publicUser;
-    });
+  const users = await userModel.getAllUsers();
+  return users.map(toPublicUser);
 };
 
-/**
- * Elimina un usuario por su ID.
- * @param {string} userId - ID del usuario a eliminar.
- */
+export const updateUser = async (userId, data) => {
+  const existingUser = await userModel.getUserById(userId);
+  if (!existingUser) {
+    const error = new Error("Usuario no encontrado.");
+    error.status = 404;
+    throw error;
+  }
+
+  const updateData = {};
+
+  if (data.nombre !== undefined) updateData.nombre = String(data.nombre || "").trim();
+  if (data.rol !== undefined) {
+    const rol = String(data.rol || "").trim().toUpperCase();
+    if (!ROLES_VALIDOS.includes(rol)) {
+      const error = new Error("Rol invalido.");
+      error.status = 400;
+      throw error;
+    }
+    updateData.rol = rol;
+  }
+  if (data.activo !== undefined) updateData.activo = Boolean(data.activo);
+  if (data.password) {
+    if (String(data.password).length < 8) {
+      const error = new Error("La contrasena debe tener al menos 8 caracteres.");
+      error.status = 400;
+      throw error;
+    }
+    updateData.password = await bcrypt.hash(String(data.password), SALT_ROUNDS);
+  }
+
+  await userModel.updateUser(userId, updateData);
+  const updatedUser = await userModel.getUserById(userId);
+  return toPublicUser(updatedUser);
+};
+
 export const deleteUser = async (userId) => {
-    await userModel.deleteUser(userId);
+  const existingUser = await userModel.getUserById(userId);
+  if (!existingUser) {
+    const error = new Error("Usuario no encontrado.");
+    error.status = 404;
+    throw error;
+  }
+
+  await userModel.deleteUser(userId);
 };
 
-/**
- * Busca un usuario por email (necesario para el login).
- * @param {string} email
- * @returns {object|null}
- */
 export const getUserByEmail = async (email) => {
-    return await userModel.getUserByEmail(email);
+  return await userModel.getUserByEmail(email);
 };

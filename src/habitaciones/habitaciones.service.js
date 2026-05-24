@@ -1,14 +1,52 @@
 import * as HabitacionesModel from "./habitaciones.model.js";
 
-export const crearHabitacion = async (data) => {
-  // Validación básica
-  if (!data.numero || !data.tipo || !data.precio) {
-    const error = new Error("Faltan datos obligatorios: numero, tipo, precio");
+const ESTADOS_VALIDOS = ["DISPONIBLE", "OCUPADA", "MANTENIMIENTO"];
+
+const normalizarHabitacion = (data) => {
+  const numero = String(data.numero || "").trim();
+  const tipo = String(data.tipo || "").trim();
+  const precio = Number(data.precio);
+  const capacidad = Number(data.capacidad || 1);
+  const estado = String(data.estado || "DISPONIBLE").trim().toUpperCase();
+
+  if (!numero || !tipo || !precio || precio <= 0) {
+    const error = new Error("Numero, tipo y precio por noche son obligatorios.");
     error.status = 400;
     throw error;
   }
 
-  return await HabitacionesModel.create(data);
+  if (!Number.isInteger(capacidad) || capacidad <= 0) {
+    const error = new Error("La capacidad debe ser un numero entero mayor a cero.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (!ESTADOS_VALIDOS.includes(estado)) {
+    const error = new Error("Estado de habitacion invalido.");
+    error.status = 400;
+    throw error;
+  }
+
+  return {
+    numero,
+    tipo,
+    precio,
+    capacidad,
+    estado,
+    piso: String(data.piso || "").trim(),
+    descripcion: String(data.descripcion || "").trim(),
+    amenities: Array.isArray(data.amenities)
+      ? data.amenities.map((item) => String(item).trim()).filter(Boolean)
+      : String(data.amenities || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+    fotos: Array.isArray(data.fotos) ? data.fotos : [],
+  };
+};
+
+export const crearHabitacion = async (data) => {
+  return await HabitacionesModel.create(normalizarHabitacion(data));
 };
 
 export const listarHabitaciones = async () => {
@@ -18,7 +56,7 @@ export const listarHabitaciones = async () => {
 export const obtenerHabitacion = async (id) => {
   const habitacion = await HabitacionesModel.getById(id);
   if (!habitacion) {
-    const error = new Error("Habitación no encontrada");
+    const error = new Error("Habitacion no encontrada");
     error.status = 404;
     throw error;
   }
@@ -28,22 +66,22 @@ export const obtenerHabitacion = async (id) => {
 export const actualizarHabitacion = async (id, data) => {
   const existe = await HabitacionesModel.getById(id);
   if (!existe) {
-    const error = new Error("Habitación no encontrada");
+    const error = new Error("Habitacion no encontrada");
     error.status = 404;
     throw error;
   }
 
-  return await HabitacionesModel.update(id, data);
+  return await HabitacionesModel.update(id, normalizarHabitacion({ ...existe, ...data }));
 };
 
 export const eliminarHabitacion = async (id) => {
   const existe = await HabitacionesModel.getById(id);
   if (!existe) {
-    const error = new Error("Habitación no encontrada");
+    const error = new Error("Habitacion no encontrada");
     error.status = 404;
     throw error;
   }
 
   await HabitacionesModel.remove(id);
-  return { message: "Habitación eliminada correctamente" };
+  return { message: "Habitacion eliminada correctamente" };
 };

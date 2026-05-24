@@ -1,69 +1,38 @@
-import * as userModel from '../models/user.model.js';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import * as userModel from "../models/user.model.js";
 
-/**
- * Servicio para el login de usuarios.
- * @param {string} email - Email del usuario.
- * @param {string} password - Contraseña en texto plano.
- * @returns {object|null} Objeto con el token y datos del usuario, o null si falla.
- */
 export const login = async (email, password) => {
-    try {
-        // 1. Buscar al usuario por email
-        const user = await userModel.getUserByEmail(email);
+  const user = await userModel.getUserByEmail(String(email || "").trim().toLowerCase());
 
-        if (!user) {
-            console.log(`[AUTH_SERVICE] Intento de login fallido: Usuario no encontrado (${email})`);
-            return null;
-        }
+  if (!user) {
+    console.warn(`[AUTH_SERVICE] Login fallido para email no registrado: ${email}`);
+    return null;
+  }
 
-        // Logs de depuración
-        console.log("DEBUG >> USER OBTENIDO:", user);
-        console.log("DEBUG >> PASSWORD EN DB:", user.password);
-        console.log("DEBUG >> PASSWORD QUE LLEGA:", password);
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    console.warn(`[AUTH_SERVICE] Login fallido por credenciales invalidas: ${email}`);
+    return null;
+  }
 
-        // 2. Comparar la contraseña ingresada con la hasheada
-        const isMatch = await bcrypt.compare(password, user.password);
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET no esta definido en las variables de entorno.");
+  }
 
-        if (!isMatch) {
-            console.log(`[AUTH_SERVICE] Intento de login fallido: Contraseña incorrecta (${email})`);
-            return null;
-        }
+  const payload = {
+    id: user.id,
+    email: user.email,
+    rol: user.rol,
+  };
 
-        // ⚠️ IMPORTANTE: leer el secreto AHORA, no arriba del archivo
-        const JWT_SECRET = process.env.JWT_SECRET;
-        console.log("DEBUG >> JWT_SECRET en runtime:", JWT_SECRET);
-        console.log(
-            '[AUTH_SERVICE] JWT_SECRET presente:',
-            typeof JWT_SECRET === 'string' && JWT_SECRET.length > 0
-        );
+  const token = jwt.sign(payload, jwtSecret, { expiresIn: "8h" });
+  const publicUser = { ...user };
+  delete publicUser.password;
 
-        if (!JWT_SECRET) {
-            throw new Error("JWT_SECRET no está definido en process.env");
-        }
-
-        // 3. Payload del token
-        const payload = {
-            id: user.id,
-            email: user.email,
-            rol: user.rol,
-        };
-
-        // 4. Generar el token
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-
-        // 5. Limpiar contraseña antes de devolver
-        const publicUser = { ...user };
-        delete publicUser.password;
-
-        return {
-            token,
-            user: publicUser,
-        };
-
-    } catch (error) {
-        console.error("Error en el servicio de login:", error);
-        throw new Error("Error en la lógica de autenticación.");
-    }
+  return {
+    token,
+    user: publicUser,
+  };
 };
