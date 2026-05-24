@@ -23,6 +23,7 @@ import consumosRoutes from "./src/consumos/consumos.routes.js";
 import pagosRoutes from "./src/pagos/pagos.routes.js";
 import disponibilidadesRoutes from "./src/disponibilidades/disponibilidades.routes.js";
 import usersRoutes from './src/routes/user.routes.js';
+import huespedesRoutes from "./src/huespedes/huespedes.routes.js";
 
 
 const app = express();
@@ -40,7 +41,7 @@ app.use(express.static('public'));
 // --------------------------------------
 app.use('/api/auth', authRoutes);
 
-// Usuarios (listado) - requiere auth + ADMIN
+// Usuarios internos - requiere ADMIN
 app.use('/api/users', usersRoutes);
 
 // --------------------------------------
@@ -50,6 +51,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/habitaciones', authMiddleware, habitacionesRoutes);
 
 app.use("/api/reservas", authMiddleware, reservasRoutes);
+app.use("/api/huespedes", huespedesRoutes);
 app.use("/api/pagos", pagosRoutes);
 app.use("/api/consumos", consumosRoutes);
 app.use("/api/disponibilidades", disponibilidadesRoutes);

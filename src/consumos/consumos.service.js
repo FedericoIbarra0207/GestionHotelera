@@ -1,20 +1,43 @@
-// src/consumos/consumos.service.js
 import * as consumosModel from "./consumos.model.js";
 import * as reservasModel from "../reservas/reservas.model.js";
 
 export const crearConsumo = async (data) => {
-    const { reservaId, descripcion, monto } = data;
+  const reservaId = String(data.reservaId || "").trim();
+  const descripcion = String(data.descripcion || "").trim();
+  const monto = Number(data.monto);
 
-    // Validaciones
-    if (!reservaId || !descripcion || !monto) {
-        throw new Error("Todos los campos (reservaId, descripcion, monto) son obligatorios.");
-    }
+  if (!reservaId || !descripcion || !monto || monto <= 0) {
+    const error = new Error("Reserva, descripcion y monto positivo son obligatorios.");
+    error.status = 400;
+    throw error;
+  }
 
-    // Validar que la reserva existe
-    const reserva = await reservasModel.getReservaById(reservaId);
-    if (!reserva) throw new Error("La reserva indicada no existe.");
+  const reserva = await reservasModel.getReservaById(reservaId);
+  if (!reserva) {
+    const error = new Error("La reserva indicada no existe.");
+    error.status = 404;
+    throw error;
+  }
 
-    return await consumosModel.createConsumo(data);
+  if (reserva.estado === "cancelled" || reserva.estado === "checked_out") {
+    const error = new Error("No se pueden registrar consumos sobre reservas canceladas o finalizadas.");
+    error.status = 409;
+    throw error;
+  }
+
+  return await consumosModel.createConsumo({
+    reservaId,
+    descripcion,
+    monto,
+    estado: "PENDIENTE_FACTURACION",
+    reservaSnapshot: {
+      codigo: reserva.codigo,
+      huesped: reserva.huespedSnapshot,
+      habitacion: reserva.habitacionSnapshot,
+      fechaInicio: reserva.fechaInicio,
+      fechaFin: reserva.fechaFin,
+    },
+  });
 };
 
 export const obtenerConsumos = () => consumosModel.getAllConsumos();

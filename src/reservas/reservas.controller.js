@@ -24,6 +24,15 @@ export const listar = async (req, res, next) => {
   }
 };
 
+export const disponibilidad = async (req, res, next) => {
+  try {
+    const data = await ReservasService.buscarDisponibilidad(req.query.fechaInicio, req.query.fechaFin);
+    return res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const obtener = async (req, res, next) => {
   try {
     const data = await ReservasService.obtenerReserva(req.params.id);
@@ -36,6 +45,24 @@ export const obtener = async (req, res, next) => {
 export const actualizar = async (req, res, next) => {
   try {
     const data = await ReservasService.actualizarReserva(req.params.id, req.body);
+    return res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const checkIn = async (req, res, next) => {
+  try {
+    const data = await ReservasService.actualizarReserva(req.params.id, { estado: "checked_in" });
+    return res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const checkOut = async (req, res, next) => {
+  try {
+    const data = await ReservasService.actualizarReserva(req.params.id, { estado: "checked_out" });
     return res.status(200).json(data);
   } catch (err) {
     next(err);

@@ -1,30 +1,51 @@
-// src/pagos/pagos.service.js
 import * as pagosModel from "./pagos.model.js";
 import * as reservasModel from "../reservas/reservas.model.js";
 
+const METODOS_VALIDOS = ["EFECTIVO", "TARJETA", "TRANSFERENCIA"];
+
 export const crearPago = async (data) => {
-    const { reservaId, monto, metodo } = data;
+  const reservaId = String(data.reservaId || "").trim();
+  const monto = Number(data.monto);
+  const metodo = String(data.metodo || "").trim().toUpperCase();
 
-    // Validar campos
-    if (!reservaId || !monto || !metodo) {
-        throw new Error("Datos incompletos para registrar el pago.");
-    }
+  if (!reservaId || !monto || monto <= 0 || !metodo) {
+    const error = new Error("Reserva, monto positivo y metodo de pago son obligatorios.");
+    error.status = 400;
+    throw error;
+  }
 
-    // Validar que la reserva existe
-    const reserva = await reservasModel.getReservaById(reservaId);
-    if (!reserva) {
-        throw new Error("La reserva no existe.");
-    }
+  if (!METODOS_VALIDOS.includes(metodo)) {
+    const error = new Error("Metodo de pago invalido.");
+    error.status = 400;
+    throw error;
+  }
 
-    // Crear pago
-    const pagoData = {
-        reservaId,
-        monto,
-        metodo,
-        estado: "CONFIRMADO" // Pagos simples
-    };
+  const reserva = await reservasModel.getReservaById(reservaId);
+  if (!reserva) {
+    const error = new Error("La reserva no existe.");
+    error.status = 404;
+    throw error;
+  }
 
-    return await pagosModel.createPago(pagoData);
+  if (reserva.estado === "cancelled") {
+    const error = new Error("No se pueden registrar pagos sobre reservas canceladas.");
+    error.status = 409;
+    throw error;
+  }
+
+  return await pagosModel.createPago({
+    reservaId,
+    monto,
+    metodo,
+    estado: "CONFIRMADO",
+    reservaSnapshot: {
+      codigo: reserva.codigo,
+      huesped: reserva.huespedSnapshot,
+      habitacion: reserva.habitacionSnapshot,
+      fechaInicio: reserva.fechaInicio,
+      fechaFin: reserva.fechaFin,
+    },
+  });
 };
 
 export const obtenerPagos = () => pagosModel.getAllPagos();
