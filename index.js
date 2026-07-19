@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Cargar variables de entorno lo antes posible
 dotenv.config();
@@ -28,6 +30,9 @@ import huespedesRoutes from "./src/huespedes/huespedes.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.join(__dirname, 'DVT-SoftwareHotelero', 'dist');
 
 // Lista blanca de origenes para CORS. Si no se configura, se permite el uso local
 // para no bloquear el entorno de desarrollo.
@@ -47,9 +52,6 @@ app.use(cors({
     },
 }));
 app.use(bodyParser.json());
-
-// Servir archivos estáticos (frontend de demo)
-app.use(express.static('public'));
 
 app.get('/api/health', (req, res) => {
     res.json({
@@ -81,6 +83,13 @@ app.use("/api/huespedes", huespedesRoutes);
 app.use("/api/pagos", pagosRoutes);
 app.use("/api/consumos", consumosRoutes);
 app.use("/api/disponibilidades", disponibilidadesRoutes);
+
+// En producción, el build de Vue se sirve desde el mismo origen que la API.
+// Esto simplifica el deploy y evita depender de CORS para el frontend.
+app.use(express.static(frontendDistPath));
+app.get('/{*splat}', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
 // --------------------------------------
 // MANEJO DE ERRORES
 // --------------------------------------
