@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: gestion-hotelera
+    runtime: node
+    branch: main
+    buildCommand: npm ci && cd DVT-SoftwareHotelero && npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: JWT_SECRET
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

@@ -1,6 +1,8 @@
 // Punto unico de comunicacion con el backend.
 // Todas las vistas usan apiFetch para no repetir URL base, headers ni manejo de sesion.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+// En produccion frontend y backend comparten origen. En desarrollo, .env
+// mantiene la URL local del servidor API.
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const apiFetch = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token')
