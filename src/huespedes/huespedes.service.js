@@ -6,9 +6,11 @@ const validarEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+// Valida y normaliza los datos del huesped antes de guardarlos o embebidos en reservas.
 export const validarHuesped = (data) => {
   const nombre = normalizarTexto(data.nombre);
   const apellido = normalizarTexto(data.apellido);
+  // Se aceptan alias comunes para no acoplar el frontend a un unico nombre de campo.
   const documento = normalizarTexto(data.documento || data.dni || data.pasaporte);
   const telefono = normalizarTexto(data.telefono);
   const email = normalizarTexto(data.email).toLowerCase();

@@ -2,6 +2,7 @@
 import { db } from "../config/firebase.config.js";
 
 const COLLECTION_NAME = "CONSUMOS_EXTRAS";
+// Coleccion de cargos adicionales vinculados a reservas.
 const consumosCollection = db.collection(COLLECTION_NAME);
 
 /**

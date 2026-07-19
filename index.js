@@ -29,12 +29,38 @@ import huespedesRoutes from "./src/huespedes/huespedes.routes.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Lista blanca de origenes para CORS. Si no se configura, se permite el uso local
+// para no bloquear el entorno de desarrollo.
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 // Middlewares globales
-app.use(cors());
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("Origen no permitido por CORS"));
+    },
+}));
 app.use(bodyParser.json());
 
 // Servir archivos estáticos (frontend de demo)
 app.use(express.static('public'));
+
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        service: 'DVT Software de Gestion Hotelera',
+        timestamp: new Date().toISOString(),
+    });
+});
+
+// Cada modulo mantiene sus propias rutas, controladores y reglas de permisos.
+// El archivo principal solo orquesta middlewares globales y monta los endpoints.
 
 // --------------------------------------
 // RUTAS PÚBLICAS (sin token)

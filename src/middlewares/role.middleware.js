@@ -1,4 +1,6 @@
 export function roleMiddleware(...rolesPermitidos) {
+  // Middleware parametrizable: cada ruta declara que roles acepta.
+  // Requiere que authMiddleware haya cargado previamente req.user.
   return (req, res, next) => {
     try {
       const usuario = req.user;

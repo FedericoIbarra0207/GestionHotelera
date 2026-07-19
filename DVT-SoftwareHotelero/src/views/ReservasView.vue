@@ -10,12 +10,38 @@ const isSearching = ref(false)
 const isSubmitting = ref(false)
 const msjExito = ref('')
 const msjError = ref('')
+const user = JSON.parse(localStorage.getItem('user') || '{}')
+const esAdmin = computed(() => user.rol === 'ADMIN')
 
+// Lista fija para cargar datos de huesped sin depender de servicios externos.
+const nacionalidades = [
+  'Argentina',
+  'Brasil',
+  'Chile',
+  'Uruguay',
+  'Paraguay',
+  'Bolivia',
+  'Peru',
+  'Colombia',
+  'Venezuela',
+  'Mexico',
+  'Estados Unidos',
+  'Canada',
+  'Espana',
+  'Francia',
+  'Italia',
+  'Alemania',
+  'Reino Unido',
+  'Otra'
+]
+
+// Rango de fechas que se consulta para saber que habitaciones estan libres.
 const busqueda = ref({
   fechaInicio: '',
   fechaFin: ''
 })
 
+// Datos necesarios para confirmar una reserva nueva.
 const form = ref({
   habitacionId: '',
   fechaInicio: '',
@@ -32,6 +58,7 @@ const form = ref({
   observaciones: ''
 })
 
+// Carga reservas activas y habitaciones para poder mostrar tablas y referencias.
 const cargarDatos = async () => {
   try {
     isLoading.value = true
@@ -51,6 +78,7 @@ const cargarDatos = async () => {
   }
 }
 
+// Consulta GET /reservas/disponibilidad con las fechas seleccionadas.
 const buscarDisponibilidad = async () => {
   msjError.value = ''
   msjExito.value = ''
@@ -79,10 +107,12 @@ const buscarDisponibilidad = async () => {
   }
 }
 
+// Guarda la habitacion elegida dentro del formulario de reserva.
 const seleccionarHabitacion = (id) => {
   form.value.habitacionId = id
 }
 
+// Envia la reserva al backend. El backend registra reserva, huesped y disponibilidad.
 const crearReserva = async () => {
   msjError.value = ''
   msjExito.value = ''
@@ -119,6 +149,7 @@ const crearReserva = async () => {
   }
 }
 
+// Cancela la reserva y libera sus fechas asociadas.
 const cancelarReserva = async (id) => {
   if (!confirm('Seguro que deseas cancelar esta reserva?')) return
 
@@ -131,6 +162,20 @@ const cancelarReserva = async (id) => {
   }
 }
 
+const eliminarReservaCancelada = async (id) => {
+  // Esta accion borra definitivamente solo reservas que ya fueron canceladas.
+  if (!confirm('Seguro que deseas eliminar definitivamente esta reserva cancelada?')) return
+
+  try {
+    await apiFetch(`/reservas/${id}/definitiva`, { method: 'DELETE' })
+    msjExito.value = 'Reserva cancelada eliminada del listado.'
+    await cargarDatos()
+  } catch (error) {
+    msjError.value = 'Error al eliminar: ' + error.message
+  }
+}
+
+// Validacion minima para evitar enviar reservas incompletas.
 const formInvalido = computed(() => {
   const huesped = form.value.huesped
   return !form.value.habitacionId ||
@@ -143,10 +188,12 @@ const formInvalido = computed(() => {
     !huesped.email
 })
 
+// Busca datos de habitacion cuando una reserva solo trae habitacionId.
 const obtenerHabitacion = (id) => {
   return habitaciones.value.find((habitacion) => habitacion.id === id)
 }
 
+// Devuelve nombre del huesped desde el snapshot guardado en la reserva.
 const huespedNombre = (reserva) => {
   if (reserva.huespedSnapshot) {
     return `${reserva.huespedSnapshot.nombre || ''} ${reserva.huespedSnapshot.apellido || ''}`.trim()
@@ -154,6 +201,16 @@ const huespedNombre = (reserva) => {
   return 'Reserva anterior'
 }
 
+const reservasActivas = computed(() => {
+  // Se separan para que recepcion trabaje sobre reservas vigentes y admin vea historial.
+  return reservas.value.filter((reserva) => reserva.estado !== 'cancelled')
+})
+
+const reservasCanceladas = computed(() => {
+  return reservas.value.filter((reserva) => reserva.estado === 'cancelled')
+})
+
+// Al entrar a la pantalla se precargan reservas y habitaciones.
 onMounted(cargarDatos)
 </script>
 
@@ -230,7 +287,12 @@ onMounted(cargarDatos)
             </div>
             <div class="field">
               <label>Nacionalidad</label>
-              <input type="text" v-model="form.huesped.nacionalidad">
+              <select v-model="form.huesped.nacionalidad">
+                <option value="">Seleccione nacionalidad...</option>
+                <option v-for="nacionalidad in nacionalidades" :key="nacionalidad" :value="nacionalidad">
+                  {{ nacionalidad }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -262,7 +324,7 @@ onMounted(cargarDatos)
           </tr>
         </thead>
         <tbody>
-          <tr v-for="res in reservas" :key="res.id">
+          <tr v-for="res in reservasActivas" :key="res.id">
             <td>{{ res.codigo || res.id.substring(0, 8) }}</td>
             <td>{{ huespedNombre(res) }}</td>
             <td>Hab. {{ res.habitacionSnapshot?.numero || obtenerHabitacion(res.habitacionId)?.numero || 'Sin dato' }}</td>
@@ -275,8 +337,42 @@ onMounted(cargarDatos)
               </button>
             </td>
           </tr>
-          <tr v-if="reservas.length === 0">
+          <tr v-if="reservasActivas.length === 0">
             <td colspan="7" class="text-center">No hay reservas registradas.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel listado canceladas">
+      <h3>Reservas canceladas</h3>
+      <table class="tabla-custom">
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Huesped</th>
+            <th>Habitacion</th>
+            <th>Check-in</th>
+            <th>Check-out</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="res in reservasCanceladas" :key="res.id">
+            <td>{{ res.codigo || res.id.substring(0, 8) }}</td>
+            <td>{{ huespedNombre(res) }}</td>
+            <td>Hab. {{ res.habitacionSnapshot?.numero || obtenerHabitacion(res.habitacionId)?.numero || 'Sin dato' }}</td>
+            <td>{{ res.fechaInicio }}</td>
+            <td>{{ res.fechaFin }}</td>
+            <td>
+              <button v-if="esAdmin" @click="eliminarReservaCancelada(res.id)" class="btn-delete">
+                Eliminar
+              </button>
+              <span v-else class="muted">Solo admin</span>
+            </td>
+          </tr>
+          <tr v-if="reservasCanceladas.length === 0">
+            <td colspan="6" class="text-center">No hay reservas canceladas.</td>
           </tr>
         </tbody>
       </table>
@@ -291,6 +387,8 @@ onMounted(cargarDatos)
 .header p { color: #64748b; margin: 0; }
 .booking-flow { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; margin-bottom: 25px; }
 .panel { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+.listado { margin-top: 22px; }
+.canceladas { border-top: 4px solid #fed7d7; }
 h3 { margin-bottom: 20px; color: var(--dark); border-bottom: 2px solid var(--light); padding-bottom: 10px; }
 .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
 .guest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -314,6 +412,7 @@ input, select, textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0;
 .success { background: #f0fff4; color: #2f855a; }
 .badge { display: inline-block; background: #edf2ff; color: #4c51bf; border-radius: 999px; padding: 4px 8px; font-size: 0.8rem; font-weight: 700; }
 .text-center { text-align: center; color: #718096; }
+.muted { color: #718096; font-size: 0.9rem; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 1024px) {
   .booking-flow, .guest-grid, .search-grid { grid-template-columns: 1fr; }

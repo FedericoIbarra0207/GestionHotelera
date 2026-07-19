@@ -1,6 +1,6 @@
 import { db } from "../config/firebase.config.js";
 
-
+// Acceso directo a la coleccion de habitaciones en Firestore.
 const collection = db.collection("HABITACIONES");
 
 export const create = async (data) => {

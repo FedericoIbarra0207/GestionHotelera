@@ -5,6 +5,7 @@ import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = express.Router();
 
+// Gestion de huespedes disponible para usuarios internos autenticados.
 router.use(authMiddleware);
 router.use(roleMiddleware("ADMIN", "RECEPCIONISTA"));
 

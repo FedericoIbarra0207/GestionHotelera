@@ -1,6 +1,7 @@
 // src/consumos/consumos.controller.js
 import * as consumosService from "./consumos.service.js";
 
+// Controladores CRUD de consumos; la validacion de negocio vive en consumos.service.js.
 export const crear = async (req, res, next) => {
     try {
         const consumo = await consumosService.crearConsumo(req.body);

@@ -1,5 +1,6 @@
 import * as userService from "../services/user.service.js";
 
+// Crea un usuario interno. La logica de validacion y Firebase vive en user.service.js.
 export const registerNewUser = async (req, res, next) => {
   try {
     const newUser = await userService.registerUser(req.body);
@@ -9,6 +10,7 @@ export const registerNewUser = async (req, res, next) => {
   }
 };
 
+// Devuelve usuarios sin exponer datos sensibles como password.
 export const listUsers = async (req, res, next) => {
   try {
     const users = await userService.getAllPublicUsers();
@@ -18,6 +20,7 @@ export const listUsers = async (req, res, next) => {
   }
 };
 
+// Actualiza datos de un usuario existente por id.
 export const updateUser = async (req, res, next) => {
   try {
     const user = await userService.updateUser(req.params.id, req.body);
@@ -27,6 +30,7 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
+// Elimina usuario interno por id.
 export const deleteUser = async (req, res, next) => {
   try {
     await userService.deleteUser(req.params.id);

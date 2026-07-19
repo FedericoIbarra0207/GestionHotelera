@@ -5,9 +5,11 @@ import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = Router();
 
+// Todas las rutas de usuarios son privadas y exclusivas para ADMIN.
 router.use(authMiddleware);
 router.use(roleMiddleware("ADMIN"));
 
+// Endpoints consumidos desde UsuariosView.vue.
 router.get("/", listUsers);
 router.post("/", registerNewUser);
 router.put("/:id", updateUser);

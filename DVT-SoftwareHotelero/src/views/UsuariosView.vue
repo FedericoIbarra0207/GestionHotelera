@@ -8,6 +8,8 @@ const successMessage = ref('')
 const isLoading = ref(true)
 const isSubmitting = ref(false)
 
+// Formulario para crear usuarios internos del sistema.
+// Por defecto se crean recepcionistas para reducir riesgo de altas con permisos admin.
 const form = ref({
   nombre: '',
   email: '',
@@ -15,6 +17,7 @@ const form = ref({
   rol: 'RECEPCIONISTA'
 })
 
+// Carga la tabla de usuarios internos desde GET /users.
 const cargarUsuarios = async () => {
   try {
     isLoading.value = true
@@ -26,6 +29,7 @@ const cargarUsuarios = async () => {
   }
 }
 
+// Crea un usuario interno y luego refresca la tabla.
 const crearUsuario = async () => {
   isSubmitting.value = true
   errorMessage.value = ''
@@ -46,6 +50,7 @@ const crearUsuario = async () => {
   }
 }
 
+// Elimina un usuario por id y vuelve a cargar el listado.
 const eliminarUsuario = async (id) => {
   if (!confirm('Seguro que deseas eliminar este usuario interno?')) return
 
@@ -58,10 +63,12 @@ const eliminarUsuario = async (id) => {
   }
 }
 
+// Valida campos minimos antes de habilitar el boton de creacion.
 const formInvalido = computed(() => {
   return !form.value.nombre || !form.value.email || form.value.password.length < 8 || !form.value.rol
 })
 
+// Al abrir la pantalla, se carga el listado inicial.
 onMounted(cargarUsuarios)
 </script>
 

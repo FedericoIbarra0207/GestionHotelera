@@ -8,6 +8,7 @@ import { sendReservationEmail } from "../services/email.service.js";
 const ESTADOS_ACTIVOS = ["pending", "confirmed", "checked_in"];
 const ESTADOS_VALIDOS = ["pending", "confirmed", "checked_in", "checked_out", "cancelled"];
 
+// Codigo legible para recepcion y suficientemente unico para uso operativo.
 const crearCodigoReserva = () => {
   return `DVT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 };
@@ -30,6 +31,7 @@ const validarFechas = (inicio, fin) => {
 };
 
 const seSolapa = (reserva, inicio, fin) => {
+  // Reservas canceladas o finalizadas no bloquean disponibilidad futura.
   if (!ESTADOS_ACTIVOS.includes(reserva.estado || "confirmed")) return false;
 
   const f1 = new Date(inicio);
@@ -57,6 +59,7 @@ const fechasEntre = (fechaInicio, fechaFin) => {
   const cur = new Date(fechaInicio);
   const end = new Date(fechaFin);
 
+  // La fecha de salida no se marca como ocupada porque esa noche ya queda libre.
   while (cur < end) {
     const y = cur.getFullYear();
     const m = String(cur.getMonth() + 1).padStart(2, "0");
@@ -69,6 +72,7 @@ const fechasEntre = (fechaInicio, fechaFin) => {
 };
 
 const marcarDisponibilidad = async (habitacionId, fechaInicio, fechaFin, disponible) => {
+  // La disponibilidad se actualiza por dia para facilitar consultas calendario.
   for (const fecha of fechasEntre(fechaInicio, fechaFin)) {
     try {
       await DisponibilidadesService.actualizar(habitacionId, fecha, disponible);
@@ -81,6 +85,7 @@ const marcarDisponibilidad = async (habitacionId, fechaInicio, fechaFin, disponi
 const liberarDisponibilidadSinPisarReservas = async (reserva) => {
   const reservasHabitacion = await ReservasModel.getByHabitacion(reserva.habitacionId);
 
+  // Al cancelar o mover una reserva, solo libera fechas que no esten ocupadas por otra.
   for (const fecha of fechasEntre(reserva.fechaInicio, reserva.fechaFin)) {
     const ocupadaPorOtraReserva = reservasHabitacion.some((otraReserva) => {
       if (otraReserva.id === reserva.id || !ESTADOS_ACTIVOS.includes(otraReserva.estado || "confirmed")) return false;
@@ -98,6 +103,7 @@ const liberarDisponibilidadSinPisarReservas = async (reserva) => {
 };
 
 const resolverHuesped = async (data) => {
+  // La reserva puede apuntar a un huesped existente o crear uno nuevo con los datos enviados.
   if (data.huespedId) {
     const huesped = await HuespedesModel.getById(data.huespedId);
     if (!huesped) {
@@ -132,6 +138,7 @@ export const buscarDisponibilidad = async (fechaInicio, fechaFin) => {
     ReservasModel.getAll(),
   ]);
 
+  // Calcula disponibilidad en memoria cruzando habitaciones contra reservas activas.
   const habitacionesConEstado = habitaciones.map((habitacion) => {
     const reservasSolapadas = reservas.filter((reserva) => {
       return reserva.habitacionId === habitacion.id && seSolapa(reserva, fechaInicio, fechaFin);
@@ -189,6 +196,7 @@ export const crearReserva = async (data, usuarioToken) => {
   const huesped = await resolverHuesped(data);
   const estado = data.estado && ESTADOS_VALIDOS.includes(data.estado) ? data.estado : "confirmed";
 
+  // Se guardan snapshots para mantener datos historicos aunque cambien huesped/habitacion.
   const created = await ReservasModel.create({
     codigo: crearCodigoReserva(),
     huespedId: huesped.id,
@@ -214,6 +222,7 @@ export const crearReserva = async (data, usuarioToken) => {
 
   await marcarDisponibilidad(habitacionId, fechaInicio, fechaFin, false);
 
+  // El email no bloquea la reserva: si falla, queda registrado en logs.
   sendReservationEmail("created", created).catch((error) => {
     console.error("No se pudo enviar email de confirmacion:", error.message);
   });
@@ -272,6 +281,7 @@ export const actualizarReserva = async (id, data) => {
   const reservasHabitacion = await ReservasModel.getByHabitacion(habitacionId);
   verificarSolapamiento(reservasHabitacion, fechaInicio, fechaFin, id);
 
+  // Si cambia habitacion o rango, recalcula disponibilidad del rango anterior y nuevo.
   if (habitacionId !== reserva.habitacionId || fechaInicio !== reserva.fechaInicio || fechaFin !== reserva.fechaFin) {
     await liberarDisponibilidadSinPisarReservas(reserva);
     await marcarDisponibilidad(habitacionId, fechaInicio, fechaFin, false);
@@ -301,6 +311,7 @@ export const eliminarReserva = async (id) => {
 
   await liberarDisponibilidadSinPisarReservas(reserva);
 
+  // Cancelar es baja logica: conserva historial y libera disponibilidad.
   const cancelled = await ReservasModel.update(id, { estado: "cancelled", cancelledAt: new Date() });
 
   sendReservationEmail("cancelled", { ...reserva, ...cancelled }).catch((error) => {
@@ -308,4 +319,17 @@ export const eliminarReserva = async (id) => {
   });
 
   return { message: "Reserva cancelada y fechas liberadas correctamente" };
+};
+
+export const eliminarReservaDefinitiva = async (id) => {
+  const reserva = await obtenerReserva(id);
+
+  if (reserva.estado !== "cancelled") {
+    const error = new Error("Solo se pueden eliminar definitivamente reservas canceladas.");
+    error.status = 409;
+    throw error;
+  }
+
+  await ReservasModel.remove(id);
+  return { message: "Reserva eliminada definitivamente." };
 };

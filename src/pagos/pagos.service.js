@@ -3,6 +3,7 @@ import * as reservasModel from "../reservas/reservas.model.js";
 
 const METODOS_VALIDOS = ["EFECTIVO", "TARJETA", "TRANSFERENCIA"];
 
+// Registra pagos contra reservas existentes y no canceladas.
 export const crearPago = async (data) => {
   const reservaId = String(data.reservaId || "").trim();
   const monto = Number(data.monto);
@@ -27,6 +28,7 @@ export const crearPago = async (data) => {
     throw error;
   }
 
+  // Una reserva cancelada ya no deberia aceptar movimientos de caja.
   if (reserva.estado === "cancelled") {
     const error = new Error("No se pueden registrar pagos sobre reservas canceladas.");
     error.status = 409;
@@ -38,6 +40,7 @@ export const crearPago = async (data) => {
     monto,
     metodo,
     estado: "CONFIRMADO",
+    // Snapshot para conservar el contexto del pago aunque la reserva cambie despues.
     reservaSnapshot: {
       codigo: reserva.codigo,
       huesped: reserva.huespedSnapshot,

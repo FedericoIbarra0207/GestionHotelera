@@ -10,6 +10,7 @@ const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
 
+// Envia credenciales al backend. Si son validas, guarda token y usuario en localStorage.
 const handleLogin = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -23,6 +24,7 @@ const handleLogin = async () => {
       })
     })
 
+    // Estos datos los usan apiFetch para autorizar peticiones y el router para permisos.
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     router.push('/dashboard')
@@ -61,9 +63,7 @@ const handleLogin = async () => {
         </button>
       </form>
 
-      <p class="link-text">
-        No tienes cuenta? <RouterLink to="/registro">Registrate aqui</RouterLink>
-      </p>
+    
     </div>
   </div>
 </template>

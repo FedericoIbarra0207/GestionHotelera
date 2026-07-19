@@ -1,6 +1,7 @@
 import * as consumosModel from "./consumos.model.js";
 import * as reservasModel from "../reservas/reservas.model.js";
 
+// Registra cargos adicionales asociados a una reserva activa.
 export const crearConsumo = async (data) => {
   const reservaId = String(data.reservaId || "").trim();
   const descripcion = String(data.descripcion || "").trim();
@@ -19,6 +20,7 @@ export const crearConsumo = async (data) => {
     throw error;
   }
 
+  // No se permiten consumos sobre reservas que ya no pueden generar cargos operativos.
   if (reserva.estado === "cancelled" || reserva.estado === "checked_out") {
     const error = new Error("No se pueden registrar consumos sobre reservas canceladas o finalizadas.");
     error.status = 409;
@@ -30,6 +32,7 @@ export const crearConsumo = async (data) => {
     descripcion,
     monto,
     estado: "PENDIENTE_FACTURACION",
+    // Snapshot historico para que la tabla siga mostrando contexto aunque cambie la reserva.
     reservaSnapshot: {
       codigo: reserva.codigo,
       huesped: reserva.huespedSnapshot,

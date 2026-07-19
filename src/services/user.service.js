@@ -4,11 +4,13 @@ import * as userModel from "../models/user.model.js";
 const SALT_ROUNDS = 10;
 const ROLES_VALIDOS = ["ADMIN", "RECEPCIONISTA"];
 
+// Nunca devolvemos password al frontend, ni siquiera hasheada.
 const toPublicUser = (user) => {
   const { password, ...publicUser } = user;
   return publicUser;
 };
 
+// Centraliza normalizacion y validaciones para altas de usuarios internos.
 const normalizarUsuario = (userData) => {
   const nombre = String(userData.nombre || "").trim();
   const email = String(userData.email || "").trim().toLowerCase();
@@ -52,6 +54,7 @@ export const registerUser = async (userData) => {
     throw error;
   }
 
+  // La contrasena se guarda hasheada; el texto plano solo vive durante esta operacion.
   const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
   const newUser = await userModel.createUser({
     email: user.email,
@@ -79,6 +82,7 @@ export const updateUser = async (userId, data) => {
 
   const updateData = {};
 
+  // Solo se escriben los campos enviados para permitir ediciones parciales.
   if (data.nombre !== undefined) updateData.nombre = String(data.nombre || "").trim();
   if (data.rol !== undefined) {
     const rol = String(data.rol || "").trim().toUpperCase();

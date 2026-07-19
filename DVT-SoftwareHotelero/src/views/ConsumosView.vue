@@ -1,4 +1,5 @@
 <script setup>
+//  se guarda el estado del formulario y se llama al backend.
 import { computed, onMounted, ref } from 'vue'
 import { apiFetch } from '../services/api'
 
@@ -9,13 +10,18 @@ const isLoading = ref(true)
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const user = JSON.parse(localStorage.getItem('user') || '{}')
+const esAdmin = computed(() => user.rol === 'ADMIN')
+const consumoEditandoId = ref(null)
 
+// Formulario para registrar consumos extras asociados a una reserva.
 const form = ref({
   reservaId: '',
   descripcion: '',
   monto: ''
 })
 
+// Carga consumos, reservas y habitaciones para armar la tabla y el selector.
 const cargarDatos = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -37,14 +43,19 @@ const cargarDatos = async () => {
   }
 }
 
+// Envia un nuevo consumo al backend y refresca la informacion.
 const registrarConsumo = async () => {
   isSubmitting.value = true
   errorMessage.value = ''
   successMessage.value = ''
 
   try {
-    await apiFetch('/consumos', {
-      method: 'POST',
+    const estabaEditando = Boolean(consumoEditandoId.value)
+    const endpoint = consumoEditandoId.value ? `/consumos/${consumoEditandoId.value}` : '/consumos'
+    const method = consumoEditandoId.value ? 'PUT' : 'POST'
+
+    await apiFetch(endpoint, {
+      method,
       body: JSON.stringify({
         reservaId: form.value.reservaId,
         descripcion: form.value.descripcion,
@@ -52,8 +63,8 @@ const registrarConsumo = async () => {
       })
     })
 
-    form.value = { reservaId: '', descripcion: '', monto: '' }
-    successMessage.value = 'Consumo registrado correctamente.'
+    cancelarEdicion()
+    successMessage.value = estabaEditando ? 'Consumo actualizado correctamente.' : 'Consumo registrado correctamente.'
     await cargarDatos()
   } catch (error) {
     errorMessage.value = error.message || 'No se pudo registrar el consumo'
@@ -62,20 +73,51 @@ const registrarConsumo = async () => {
   }
 }
 
+const editarConsumo = (consumo) => {
+  // Reutiliza el formulario lateral para corregir consumos cargados previamente.
+  consumoEditandoId.value = consumo.id
+  form.value = {
+    reservaId: consumo.reservaId,
+    descripcion: consumo.descripcion,
+    monto: Number(consumo.monto || 0)
+  }
+}
+
+const cancelarEdicion = () => {
+  consumoEditandoId.value = null
+  form.value = { reservaId: '', descripcion: '', monto: '' }
+}
+
+const eliminarConsumo = async (consumo) => {
+  if (!confirm('Seguro que deseas eliminar este consumo?')) return
+
+  try {
+    await apiFetch(`/consumos/${consumo.id}`, { method: 'DELETE' })
+    successMessage.value = 'Consumo eliminado correctamente.'
+    await cargarDatos()
+  } catch (error) {
+    errorMessage.value = error.message || 'No se pudo eliminar el consumo'
+  }
+}
+
+// Valida que el formulario tenga reserva, descripcion y monto positivo.
 const formInvalido = computed(() => {
   return !form.value.reservaId || !form.value.descripcion || !form.value.monto || Number(form.value.monto) <= 0
 })
 
+// Solo muestra reservas que siguen activas para poder cargar consumos.
 const reservasConEstadiaActiva = computed(() => {
   return reservas.value.filter((reserva) => reserva.estado !== 'cancelled' && reserva.estado !== 'checked_out')
 })
 
+// Busca el numero de habitacion asociado a una reserva.
 const habitacionDeReserva = (reservaId) => {
   const reserva = reservas.value.find((item) => item.id === reservaId)
   const habitacion = habitaciones.value.find((item) => item.id === reserva?.habitacionId)
   return habitacion?.numero || 'Sin dato'
 }
 
+// Texto que se muestra en el selector de reservas.
 const etiquetaReserva = (reserva) => {
   const huesped = reserva.huespedSnapshot
     ? `${reserva.huespedSnapshot.nombre || ''} ${reserva.huespedSnapshot.apellido || ''}`.trim()
@@ -83,13 +125,24 @@ const etiquetaReserva = (reserva) => {
   return `${reserva.codigo || reserva.id.substring(0, 8)} - ${huesped}`
 }
 
+// Suma todos los consumos cargados.
 const totalConsumos = computed(() => {
   return consumos.value.reduce((total, consumo) => total + Number(consumo.monto || 0), 0)
 })
 
+const reservasConConsumos = computed(() => {
+  // Cuenta reservas unicas con consumos, no la cantidad total de items.
+  return new Set(consumos.value.map((consumo) => consumo.reservaId)).size
+})
+
+// Cuando se abre la pantalla, se cargan los datos iniciales.
 onMounted(cargarDatos)
 </script>
 
+<!--
+definicion de lo que se ve en pantalla.
+  Usa las variables del <script setup> para mostrar resumen, tabla, mensajes y formulario.
+-->
 <template>
   <section class="page">
     <div class="header">
@@ -103,7 +156,11 @@ onMounted(cargarDatos)
         <strong>{{ consumos.length }}</strong>
       </div>
       <div class="summary-item">
-        <span>Total pendiente/facturable</span>
+        <span>Reservas con consumos</span>
+        <strong>{{ reservasConConsumos }}</strong>
+      </div>
+      <div class="summary-item highlight">
+        <span>Total a facturar en consumos</span>
         <strong>${{ totalConsumos }}</strong>
       </div>
     </div>
@@ -123,6 +180,7 @@ onMounted(cargarDatos)
               <th>Habitacion</th>
               <th>Descripcion</th>
               <th>Monto</th>
+              <th v-if="esAdmin">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -131,16 +189,20 @@ onMounted(cargarDatos)
               <td>Hab. {{ consumo.reservaSnapshot?.habitacion?.numero || habitacionDeReserva(consumo.reservaId) }}</td>
               <td>{{ consumo.descripcion }}</td>
               <td>${{ consumo.monto }}</td>
+              <td v-if="esAdmin" class="actions">
+                <button class="btn-edit" @click="editarConsumo(consumo)">Editar</button>
+                <button class="btn-delete" @click="eliminarConsumo(consumo)">Eliminar</button>
+              </td>
             </tr>
             <tr v-if="consumos.length === 0">
-              <td colspan="4" class="text-center">No hay consumos registrados.</td>
+              <td :colspan="esAdmin ? 5 : 4" class="text-center">No hay consumos registrados.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="panel">
-        <h3>Nuevo consumo</h3>
+        <h3>{{ consumoEditandoId ? 'Editar consumo' : 'Nuevo consumo' }}</h3>
         <form @submit.prevent="registrarConsumo">
           <div class="field">
             <label>Reserva</label>
@@ -163,7 +225,10 @@ onMounted(cargarDatos)
           </div>
 
           <button type="submit" class="btn-save" :disabled="formInvalido || isSubmitting">
-            {{ isSubmitting ? 'Guardando...' : 'Registrar consumo' }}
+            {{ isSubmitting ? 'Guardando...' : (consumoEditandoId ? 'Actualizar consumo' : 'Registrar consumo') }}
+          </button>
+          <button v-if="consumoEditandoId" type="button" class="btn-cancel" @click="cancelarEdicion">
+            Cancelar edicion
           </button>
         </form>
       </div>
@@ -171,6 +236,10 @@ onMounted(cargarDatos)
   </section>
 </template>
 
+<!--
+  STYLE SCOPED:
+  Estilos solo para esta vista. "scoped" evita que afecten a otros componentes.
+-->
 <style scoped>
 .page { animation: fadeIn 0.5s ease; }
 .header { margin-bottom: 20px; }
@@ -178,6 +247,7 @@ onMounted(cargarDatos)
 .header p { color: #64748b; margin: 0; }
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
 .summary-item { background: white; border-radius: 8px; padding: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+.summary-item.highlight { border-left: 5px solid #0f766e; }
 .summary-item span { display: block; color: #64748b; font-size: 0.9rem; }
 .summary-item strong { display: block; color: var(--dark); font-size: 1.8rem; margin-top: 6px; }
 .layout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
@@ -191,6 +261,11 @@ label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem;
 input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-family: inherit; }
 .btn-save { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
 .btn-save:disabled { background: #cbd5e0; cursor: not-allowed; }
+.btn-cancel { background: #edf2f7; color: #334155; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-edit, .btn-delete { border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 700; }
+.btn-edit { background: #edf2ff; color: #4c51bf; }
+.btn-delete { background: #fff5f5; color: #e53e3e; }
 .msg { padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; }
 .error { background: #fff5f5; color: #c53030; }
 .success { background: #f0fff4; color: #2f855a; }

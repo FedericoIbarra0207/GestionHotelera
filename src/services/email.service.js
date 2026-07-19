@@ -3,6 +3,7 @@ const hotelInfo = {
   emailFrom: process.env.HOTEL_EMAIL_FROM || "DVT Reservas <reservas@example.com>",
 };
 
+// Formatea fechas para emails orientados a huespedes en Argentina.
 const formatDate = (value) => {
   if (!value) return "";
   return new Date(value).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
@@ -74,8 +75,10 @@ export const sendReservationEmail = async (event, reserva) => {
   const apiKey = process.env.RESEND_API_KEY;
   const email = buildReservationEmail(event, reserva);
 
+  // Si la reserva no tiene email de huesped, se omite el envio sin romper el flujo.
   if (!email.to) return;
 
+  // En desarrollo se permite operar sin proveedor de emails configurado.
   if (!apiKey) {
     console.log(`[EMAIL] RESEND_API_KEY no configurada. Email pendiente: ${email.subject} -> ${email.to}`);
     return;
