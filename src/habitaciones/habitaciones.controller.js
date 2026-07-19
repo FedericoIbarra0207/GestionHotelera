@@ -1,5 +1,6 @@
 import * as HabitacionesService from "./habitaciones.service.js";
 
+// Controladores finos: reciben HTTP, delegan reglas al service y devuelven JSON.
 export const crear = async (req, res, next) => {
   try {
     const data = await HabitacionesService.crearHabitacion(req.body);

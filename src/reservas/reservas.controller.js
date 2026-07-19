@@ -6,6 +6,7 @@
 
 import * as ReservasService from "./reservas.service.js";
 
+// Crea una reserva nueva con los datos enviados desde ReservasView.vue.
 export const crear = async (req, res, next) => {
   try {
     const data = await ReservasService.crearReserva(req.body, req.user);
@@ -15,6 +16,7 @@ export const crear = async (req, res, next) => {
   }
 };
 
+// Lista reservas para tablas, dashboard operativo y selector de pagos.
 export const listar = async (req, res, next) => {
   try {
     const data = await ReservasService.listarReservas();
@@ -24,6 +26,7 @@ export const listar = async (req, res, next) => {
   }
 };
 
+// Busca habitaciones disponibles entre fechaInicio y fechaFin.
 export const disponibilidad = async (req, res, next) => {
   try {
     const data = await ReservasService.buscarDisponibilidad(req.query.fechaInicio, req.query.fechaFin);
@@ -33,6 +36,7 @@ export const disponibilidad = async (req, res, next) => {
   }
 };
 
+// Obtiene una reserva puntual por id.
 export const obtener = async (req, res, next) => {
   try {
     const data = await ReservasService.obtenerReserva(req.params.id);
@@ -42,6 +46,7 @@ export const obtener = async (req, res, next) => {
   }
 };
 
+// Actualiza datos generales de una reserva.
 export const actualizar = async (req, res, next) => {
   try {
     const data = await ReservasService.actualizarReserva(req.params.id, req.body);
@@ -51,6 +56,7 @@ export const actualizar = async (req, res, next) => {
   }
 };
 
+// Marca una reserva como checked_in desde el dashboard operativo.
 export const checkIn = async (req, res, next) => {
   try {
     const data = await ReservasService.actualizarReserva(req.params.id, { estado: "checked_in" });
@@ -60,6 +66,7 @@ export const checkIn = async (req, res, next) => {
   }
 };
 
+// Marca una reserva como checked_out desde el dashboard operativo.
 export const checkOut = async (req, res, next) => {
   try {
     const data = await ReservasService.actualizarReserva(req.params.id, { estado: "checked_out" });
@@ -69,9 +76,20 @@ export const checkOut = async (req, res, next) => {
   }
 };
 
+// Cancela/elimina una reserva y libera disponibilidad segun la logica del service.
 export const eliminar = async (req, res, next) => {
   try {
     const data = await ReservasService.eliminarReserva(req.params.id);
+    return res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Elimina definitivamente una reserva cancelada. Accion administrativa.
+export const eliminarDefinitiva = async (req, res, next) => {
+  try {
+    const data = await ReservasService.eliminarReservaDefinitiva(req.params.id);
     return res.status(200).json(data);
   } catch (err) {
     next(err);

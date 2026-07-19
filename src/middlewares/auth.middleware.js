@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 
+// Valida el JWT enviado como "Authorization: Bearer <token>".
+// Si es correcto, deja el usuario decodificado en req.user para roles y auditoria.
 export const authMiddleware = (req, res, next) => {
   const header = req.headers.authorization;
 

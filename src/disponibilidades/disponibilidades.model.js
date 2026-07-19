@@ -10,6 +10,7 @@ const collection = db.collection(COLLECTION_NAME);
  * - disponible (true/false)
  */
 export const save = async ({ habitacionId, fecha, disponible }) => {
+  // Documento deterministico: una sola disponibilidad por habitacion y fecha.
   const docId = `${habitacionId}_${fecha}`;
   const ref = collection.doc(docId);
 

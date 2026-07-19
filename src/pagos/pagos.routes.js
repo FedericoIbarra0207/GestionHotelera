@@ -6,7 +6,8 @@ import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = Router();
 
-// Solo ADMIN o RECEPCIONISTA pueden manejar pagos
+// Endpoints usados por PagosView.vue.
+// ADMIN y RECEPCIONISTA pueden registrar/listar; solo ADMIN modifica o elimina.
 
 router.post(
     "/",

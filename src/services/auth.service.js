@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import * as userModel from "../models/user.model.js";
 
+// Autentica credenciales contra usuarios internos y devuelve un JWT de sesion.
 export const login = async (email, password) => {
   const user = await userModel.getUserByEmail(String(email || "").trim().toLowerCase());
 
@@ -27,6 +28,7 @@ export const login = async (email, password) => {
     rol: user.rol,
   };
 
+  // El token guarda solo datos publicos necesarios para permisos del backend.
   const token = jwt.sign(payload, jwtSecret, { expiresIn: "8h" });
   const publicUser = { ...user };
   delete publicUser.password;

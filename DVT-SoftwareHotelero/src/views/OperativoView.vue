@@ -7,6 +7,7 @@ const habitaciones = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 
+// Fecha actual en formato YYYY-MM-DD para comparar contra las fechas de reservas.
 const todayString = () => {
   const now = new Date()
   const y = now.getFullYear()
@@ -15,6 +16,7 @@ const todayString = () => {
   return `${y}-${m}-${d}`
 }
 
+// Carga la informacion que alimenta metricas, check-ins y check-outs.
 const cargarDatos = async () => {
   try {
     isLoading.value = true
@@ -31,20 +33,24 @@ const cargarDatos = async () => {
   }
 }
 
+// Reservas que todavia afectan la operacion del hotel.
 const reservasActivas = computed(() => {
   return reservas.value.filter((reserva) => reserva.estado !== 'cancelled' && reserva.estado !== 'checked_out')
 })
 
+// Entradas programadas para hoy.
 const checkInsHoy = computed(() => {
   const hoy = todayString()
   return reservasActivas.value.filter((reserva) => reserva.fechaInicio === hoy)
 })
 
+// Salidas programadas para hoy.
 const checkOutsHoy = computed(() => {
   const hoy = todayString()
   return reservasActivas.value.filter((reserva) => reserva.fechaFin === hoy)
 })
 
+// Habitaciones ocupadas hoy: fechaInicio <= hoy y fechaFin > hoy.
 const habitacionesOcupadas = computed(() => {
   const hoy = new Date(todayString())
   return habitaciones.value.filter((habitacion) => {
@@ -56,10 +62,12 @@ const habitacionesOcupadas = computed(() => {
   })
 })
 
+// Cantidad disponible calculada desde total de habitaciones menos ocupadas.
 const habitacionesDisponibles = computed(() => {
   return habitaciones.value.length - habitacionesOcupadas.value.length
 })
 
+// Primeras reservas futuras para mostrar en el resumen operativo.
 const proximasReservas = computed(() => {
   const hoy = new Date(todayString())
   return reservasActivas.value
@@ -68,15 +76,18 @@ const proximasReservas = computed(() => {
     .slice(0, 6)
 })
 
+// Nombre visible del huesped desde el snapshot de la reserva.
 const huespedNombre = (reserva) => {
   const huesped = reserva.huespedSnapshot || {}
   return `${huesped.nombre || ''} ${huesped.apellido || ''}`.trim() || 'Sin huesped'
 }
 
+// Numero de habitacion desde snapshot o desde el listado cargado.
 const habitacionNombre = (reserva) => {
   return reserva.habitacionSnapshot?.numero || habitaciones.value.find((habitacion) => habitacion.id === reserva.habitacionId)?.numero || 'Sin dato'
 }
 
+// Ejecuta acciones operativas sobre una reserva: check-in o check-out.
 const cambiarEstado = async (reserva, accion) => {
   try {
     await apiFetch(`/reservas/${reserva.id}/${accion}`, { method: 'PATCH' })
@@ -86,6 +97,7 @@ const cambiarEstado = async (reserva, accion) => {
   }
 }
 
+// Carga inicial del dashboard operativo.
 onMounted(cargarDatos)
 </script>
 

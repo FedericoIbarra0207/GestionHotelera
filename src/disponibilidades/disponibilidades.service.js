@@ -2,6 +2,7 @@ import * as model from "./disponibilidades.model.js";
 import * as habitacionesModel from "../habitaciones/habitaciones.model.js";
 
 export const actualizar = async (habitacionId, fecha, disponible) => {
+  // Evita crear disponibilidad para habitaciones inexistentes o mal cargadas.
   // Verificar que la habitación existe
   const habitacion = await habitacionesModel.getById(habitacionId);
 

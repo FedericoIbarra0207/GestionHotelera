@@ -9,6 +9,8 @@ import {
 
 const router = Router();
 
+// Endpoints de calendario: las reservas tambien los usan internamente para bloquear/liberar fechas.
+
 /**
  * VER disponibilidades
  * ADMIN - RECEPCIONISTA - CLIENTE

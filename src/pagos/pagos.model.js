@@ -2,6 +2,7 @@
 import { db } from "../config/firebase.config.js";
 
 const COLLECTION_NAME = "PAGOS";
+// Coleccion financiera principal para pagos confirmados.
 const pagosCollection = db.collection(COLLECTION_NAME);
 
 /**

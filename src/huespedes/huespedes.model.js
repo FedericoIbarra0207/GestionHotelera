@@ -1,5 +1,6 @@
 import { db } from "../config/firebase.config.js";
 
+// Coleccion de huespedes reutilizable por reservas y gestion de clientes.
 const collection = db.collection("HUESPEDES");
 
 export const create = async (data) => {

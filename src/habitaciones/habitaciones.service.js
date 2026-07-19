@@ -2,6 +2,7 @@ import * as HabitacionesModel from "./habitaciones.model.js";
 
 const ESTADOS_VALIDOS = ["DISPONIBLE", "OCUPADA", "MANTENIMIENTO"];
 
+// Normaliza datos que pueden venir del formulario como texto y valida reglas minimas.
 const normalizarHabitacion = (data) => {
   const numero = String(data.numero || "").trim();
   const tipo = String(data.tipo || "").trim();
@@ -35,6 +36,7 @@ const normalizarHabitacion = (data) => {
     estado,
     piso: String(data.piso || "").trim(),
     descripcion: String(data.descripcion || "").trim(),
+    // El frontend envia amenities como texto separado por comas; tambien se acepta array.
     amenities: Array.isArray(data.amenities)
       ? data.amenities.map((item) => String(item).trim()).filter(Boolean)
       : String(data.amenities || "")
@@ -71,6 +73,7 @@ export const actualizarHabitacion = async (id, data) => {
     throw error;
   }
 
+  // Se mezcla con lo existente para permitir actualizaciones parciales sin perder campos.
   return await HabitacionesModel.update(id, normalizarHabitacion({ ...existe, ...data }));
 };
 

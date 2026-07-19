@@ -2,9 +2,12 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
+// Usuario guardado al iniciar sesion. Se usa para mostrar opciones segun el rol.
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const isAdmin = user.rol === 'ADMIN'
 
+// Cierra la sesion local y devuelve al login.
 const logout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')

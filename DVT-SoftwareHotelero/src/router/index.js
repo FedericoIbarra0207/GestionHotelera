@@ -11,6 +11,7 @@ import UsuariosView from '../views/UsuariosView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Entrada principal: siempre redirige al login.
     {
       path: '/',
       redirect: '/login'
@@ -29,6 +30,7 @@ const router = createRouter({
       name: 'dashboard',
       component: DashboardView,
       redirect: '/dashboard/operativo',
+      // Secciones internas que se renderizan dentro de DashboardView con <RouterView />.
       children: [
         {
           path: 'operativo',
@@ -65,6 +67,9 @@ const router = createRouter({
   ]
 })
 
+// Guardia global de rutas:
+// - bloquea el dashboard si no hay token
+// - bloquea Usuarios si el usuario no es ADMIN
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
