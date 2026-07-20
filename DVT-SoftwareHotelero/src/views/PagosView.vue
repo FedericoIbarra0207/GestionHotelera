@@ -13,6 +13,9 @@ const successMessage = ref('')
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const esAdmin = computed(() => user.rol === 'ADMIN')
 const pagoEditandoId = ref(null)
+const vistaPagos = ref('TODOS')
+const filtroMes = ref('')
+const filtroEstado = ref('')
 
 // Formulario para registrar un pago sobre una reserva existente.
 const form = ref({
@@ -145,8 +148,10 @@ const precioHabitacionReserva = (reserva) => {
   return Number(habitacion?.precio || 0)
 }
 
+/** Sólo los consumos confirmados en cuenta forman parte del importe a cobrar. */
 const consumosDeReserva = (reservaId) => {
-  return consumos.value.filter((consumo) => consumo.reservaId === reservaId)
+  const estadosCobrables = ['EN_CUENTA', 'FACTURADO', 'CERRADO']
+  return consumos.value.filter((consumo) => consumo.reservaId === reservaId && estadosCobrables.includes(consumo.estado))
 }
 
 const pagosDeReserva = (reservaId) => {
@@ -172,8 +177,34 @@ const detallePagoSugerido = computed(() => {
 
 // Suma simple de todos los pagos cargados.
 const totalPagos = computed(() => {
-  return pagos.value.reduce((total, pago) => total + Number(pago.monto || 0), 0)
+  return pagosFiltrados.value.reduce((total, pago) => total + Number(pago.monto || 0), 0)
 })
+
+/** Lee fechas Firestore o ISO para filtrar sin modificar los movimientos. */
+const paymentDate = (pago) => {
+  const value = pago.createdAt?.toDate?.() || pago.createdAt
+  return value ? new Date(value) : null
+}
+
+/** Filtra el historial de cobros por estado, período y pestaña seleccionada. */
+const pagosFiltrados = computed(() => pagos.value.filter((pago) => {
+  const fecha = paymentDate(pago)
+  const estado = pago.estado || 'CONFIRMADO'
+  const cumpleMes = !filtroMes.value || (fecha && `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}` === filtroMes.value)
+  const cumpleEstado = !filtroEstado.value || estado === filtroEstado.value
+  const cumpleVista = vistaPagos.value === 'TODOS' || (vistaPagos.value === 'HISTORIAL' && estado === 'CONFIRMADO') || (vistaPagos.value === 'OTROS' && estado !== 'CONFIRMADO')
+  return cumpleMes && cumpleEstado && cumpleVista
+}))
+
+/** Reservas que requieren cobro, calculadas por el backend junto a su saldo. */
+const reservasPendientes = computed(() => reservas.value.filter((reserva) => Number(reserva.resumenFinanciero?.saldoPendiente || 0) > 0))
+
+/** Restablece los cobros visibles sin cambiar registros financieros. */
+const limpiarFiltros = () => {
+  vistaPagos.value = 'TODOS'
+  filtroMes.value = ''
+  filtroEstado.value = ''
+}
 
 watch(() => form.value.reservaId, () => {
   // Al elegir reserva nueva, precarga el saldo pendiente como monto sugerido.
@@ -195,8 +226,8 @@ onMounted(cargarDatos)
 
     <div class="summary">
       <div class="summary-item">
-        <span>Pagos registrados</span>
-        <strong>{{ pagos.length }}</strong>
+        <span>Pagos del filtro</span>
+        <strong>{{ pagosFiltrados.length }}</strong>
       </div>
       <div class="summary-item">
         <span>Total confirmado</span>
@@ -206,6 +237,18 @@ onMounted(cargarDatos)
 
     <p v-if="errorMessage" class="msg error">{{ errorMessage }}</p>
     <p v-if="successMessage" class="msg success">{{ successMessage }}</p>
+
+    <div class="panel filters">
+      <div class="tabs"><button v-for="vista in ['TODOS', 'HISTORIAL', 'OTROS']" :key="vista" :class="{ active: vistaPagos === vista }" @click="vistaPagos = vista">{{ vista === 'TODOS' ? 'Todos' : vista === 'HISTORIAL' ? 'Historial confirmado' : 'Pendientes / otros' }}</button></div>
+      <input v-model="filtroMes" type="month">
+      <select v-model="filtroEstado"><option value="">Todos los estados</option><option value="CONFIRMADO">Confirmado</option><option value="PENDIENTE">Pendiente</option><option value="RECHAZADO">Rechazado</option><option value="ANULADO">Anulado</option></select>
+      <button type="button" class="btn-clear" @click="limpiarFiltros">Limpiar filtros</button>
+    </div>
+
+    <div class="panel pendientes" v-if="reservasPendientes.length">
+      <h3>Reservas con saldo pendiente</h3>
+      <div v-for="reserva in reservasPendientes" :key="reserva.id" class="pending-row"><span>{{ etiquetaReserva(reserva) }} · Hab. {{ habitacionDeReserva(reserva.id) }}</span><strong>Saldo ${{ reserva.resumenFinanciero.saldoPendiente }}</strong></div>
+    </div>
 
     <div class="layout-grid">
       <div class="panel">
@@ -224,7 +267,7 @@ onMounted(cargarDatos)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="pago in pagos" :key="pago.id">
+            <tr v-for="pago in pagosFiltrados" :key="pago.id">
               <td>{{ pago.reservaSnapshot?.codigo || pago.reservaId }}</td>
               <td>Hab. {{ pago.reservaSnapshot?.habitacion?.numero || habitacionDeReserva(pago.reservaId) }}</td>
               <td>{{ pago.metodo }}</td>
@@ -235,7 +278,7 @@ onMounted(cargarDatos)
                 <button class="btn-delete" @click="eliminarPago(pago)">Eliminar</button>
               </td>
             </tr>
-            <tr v-if="pagos.length === 0">
+            <tr v-if="pagosFiltrados.length === 0">
               <td :colspan="esAdmin ? 6 : 5" class="text-center">No hay pagos registrados.</td>
             </tr>
           </tbody>
@@ -262,7 +305,7 @@ onMounted(cargarDatos)
 
           <div v-if="form.reservaId" class="payment-breakdown">
             <div><span>Alojamiento</span><strong>${{ detallePagoSugerido.alojamiento }}</strong></div>
-            <div><span>Consumos</span><strong>${{ detallePagoSugerido.consumos }}</strong></div>
+            <div><span>Consumos incluidos en cuenta</span><strong>${{ detallePagoSugerido.consumos }}</strong></div>
             <div><span>Ya pagado</span><strong>${{ detallePagoSugerido.pagado }}</strong></div>
             <div class="total"><span>Saldo sugerido</span><strong>${{ detallePagoSugerido.saldo }}</strong></div>
           </div>
@@ -316,6 +359,13 @@ input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-ra
 .payment-breakdown { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
 .payment-breakdown div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; color: #475569; }
 .payment-breakdown .total { border-top: 1px solid #e2e8f0; margin-top: 4px; padding-top: 9px; color: var(--dark); }
+.filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { border: 1px solid #cbd5e0; background: #fff; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-clear { border: 1px solid #cbd5e0; background: #fff; padding: 9px 12px; border-radius: 6px; cursor: pointer; }
+.pendientes { margin-bottom: 20px; border-left: 5px solid #d97706; }
+.pending-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #edf2f7; }
 .msg { padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; }
 .error { background: #fff5f5; color: #c53030; }
 .success { background: #f0fff4; color: #2f855a; }

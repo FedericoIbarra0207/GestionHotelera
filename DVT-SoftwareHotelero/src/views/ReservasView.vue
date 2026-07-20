@@ -12,6 +12,11 @@ const msjExito = ref('')
 const msjError = ref('')
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const esAdmin = computed(() => user.rol === 'ADMIN')
+const vistaReservas = ref('TODOS')
+const filtroEstado = ref('')
+const filtroHuesped = ref('')
+const filtroHabitacion = ref('')
+const filtroMes = ref('')
 
 // Lista fija para cargar datos de huesped sin depender de servicios externos.
 const nacionalidades = [
@@ -202,13 +207,36 @@ const huespedNombre = (reserva) => {
 }
 
 const reservasActivas = computed(() => {
-  // Se separan para que recepcion trabaje sobre reservas vigentes y admin vea historial.
-  return reservas.value.filter((reserva) => reserva.estado !== 'cancelled')
+  // El backend decide el estado con checkout, saldo y consumos pendientes.
+  return reservas.value.filter((reserva) => vistaReservas.value === 'TODOS' || reserva.estadoOperativo === vistaReservas.value)
 })
 
 const reservasCanceladas = computed(() => {
   return reservas.value.filter((reserva) => reserva.estado === 'cancelled')
 })
+
+/** Aplica filtros visuales sin alterar la información histórica de Firestore. */
+const reservasFiltradas = computed(() => {
+  const term = filtroHuesped.value.trim().toLowerCase()
+  return reservasActivas.value.filter((reserva) => {
+    const huesped = huespedNombre(reserva).toLowerCase()
+    const habitacion = String(reserva.habitacionSnapshot?.numero || obtenerHabitacion(reserva.habitacionId)?.numero || '')
+    const fecha = String(reserva.fechaInicio || '').slice(0, 7)
+    return (!filtroEstado.value || reserva.estado === filtroEstado.value) &&
+      (!term || huesped.includes(term)) &&
+      (!filtroHabitacion.value || habitacion === filtroHabitacion.value) &&
+      (!filtroMes.value || fecha === filtroMes.value)
+  })
+})
+
+/** Restablece la consulta operativa sin alterar reservas ni datos históricos. */
+const limpiarFiltros = () => {
+  filtroEstado.value = ''
+  filtroHuesped.value = ''
+  filtroHabitacion.value = ''
+  filtroMes.value = ''
+  vistaReservas.value = 'TODOS'
+}
 
 // Al entrar a la pantalla se precargan reservas y habitaciones.
 onMounted(cargarDatos)
@@ -309,7 +337,16 @@ onMounted(cargarDatos)
     </div>
 
     <div class="panel listado">
-      <h3>Reservas activas</h3>
+      <h3>{{ vistaReservas === 'TODOS' ? 'Todas las reservas' : vistaReservas === 'ACTIVA' ? 'Reservas activas' : vistaReservas === 'PENDIENTE' ? 'Reservas pendientes' : 'Historial de reservas' }}</h3>
+      <p v-if="vistaReservas === 'HISTORIAL'" class="history-help">Incluye estadías finalizadas, sin saldo pendiente y sin consumos abiertos. Está disponible para recepción y administración como consulta.</p>
+      <div class="filtros-reservas">
+        <div class="tabs"><button v-for="vista in ['TODOS', 'ACTIVA', 'PENDIENTE', 'HISTORIAL']" :key="vista" :class="{ active: vistaReservas === vista }" @click="vistaReservas = vista">{{ vista === 'TODOS' ? 'Todos' : vista === 'ACTIVA' ? 'Activas' : vista === 'PENDIENTE' ? 'Pendientes' : 'Historial' }}</button></div>
+        <label>Mes de ingreso<input v-model="filtroMes" type="month"></label>
+        <label>Huésped<input v-model="filtroHuesped" placeholder="Nombre o apellido"></label>
+        <label>Habitación<select v-model="filtroHabitacion"><option value="">Todas</option><option v-for="habitacion in habitaciones" :key="habitacion.id" :value="String(habitacion.numero)">Hab. {{ habitacion.numero }}</option></select></label>
+        <label>Estado<select v-model="filtroEstado"><option value="">Todos</option><option value="confirmed">Confirmada</option><option value="checked_in">Check-in</option><option value="checked_out">Check-out</option></select></label>
+        <button class="btn-clear" @click="limpiarFiltros">Limpiar</button>
+      </div>
       <div v-if="isLoading" class="msg">Cargando reservas...</div>
       <table v-else class="tabla-custom">
         <thead>
@@ -320,25 +357,27 @@ onMounted(cargarDatos)
             <th>Check-in</th>
             <th>Check-out</th>
             <th>Estado</th>
+            <th>Saldo</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="res in reservasActivas" :key="res.id">
+          <tr v-for="res in reservasFiltradas" :key="res.id">
             <td>{{ res.codigo || res.id.substring(0, 8) }}</td>
             <td>{{ huespedNombre(res) }}</td>
             <td>Hab. {{ res.habitacionSnapshot?.numero || obtenerHabitacion(res.habitacionId)?.numero || 'Sin dato' }}</td>
             <td>{{ res.fechaInicio }}</td>
             <td>{{ res.fechaFin }}</td>
             <td><span class="badge">{{ res.estado || 'confirmed' }}</span></td>
+            <td><small>Saldo: ${{ res.resumenFinanciero?.saldoPendiente || 0 }}</small></td>
             <td>
               <button @click="cancelarReserva(res.id)" class="btn-delete" :disabled="res.estado === 'cancelled'">
                 Cancelar
               </button>
             </td>
           </tr>
-          <tr v-if="reservasActivas.length === 0">
-            <td colspan="7" class="text-center">No hay reservas registradas.</td>
+          <tr v-if="reservasFiltradas.length === 0">
+            <td colspan="8" class="text-center">{{ vistaReservas === 'HISTORIAL' ? 'No hay estadías cerradas para los filtros seleccionados.' : 'No hay reservas en esta vista.' }}</td>
           </tr>
         </tbody>
       </table>
@@ -389,6 +428,14 @@ onMounted(cargarDatos)
 .panel { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
 .listado { margin-top: 22px; }
 .canceladas { border-top: 4px solid #fed7d7; }
+.filtros-reservas { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 18px; padding: 14px; background: #f8fafc; border-radius: 8px; }
+.filtros-reservas label { margin: 0; color: #475569; font-size: .82rem; }
+.filtros-reservas input, .filtros-reservas select { margin-top: 4px; min-width: 140px; }
+.tabs { display: flex; gap: 6px; }
+.tabs button { border: 1px solid #cbd5e0; background: #fff; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-clear { border: 1px solid #cbd5e0; background: #fff; padding: 9px 12px; border-radius: 6px; cursor: pointer; }
+.history-help { margin: -10px 0 16px; color: #64748b; font-size: .9rem; }
 h3 { margin-bottom: 20px; color: var(--dark); border-bottom: 2px solid var(--light); padding-bottom: 10px; }
 .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
 .guest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }

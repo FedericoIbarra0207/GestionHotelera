@@ -28,7 +28,10 @@ body {
     color: var(--dark);
     background: var(--light);
     line-height: 1.6;
+    overflow-x: hidden;
 }
+
+img { max-width: 100%; }
 
 /* ===== BOTONES ===== */
 .btn {
@@ -441,8 +444,60 @@ body {
     opacity: 0.8;
 }
 
+/* ===== VOLVER ARRIBA ===== */
+.back-to-top {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 90;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    box-shadow: 0 8px 20px rgba(85, 104, 211, 0.3);
+    cursor: pointer;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+    transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.back-to-top.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.back-to-top:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(85, 104, 211, 0.4);
+}
+
+.back-to-top:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+}
+
 /* ===== RESPONSIVO ===== */
 @media (max-width: 768px) {
+    /* La navegación deja de competir por ancho con el logo en tablet y móvil. */
+    .nav-container {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.8rem 1rem;
+    }
+
+    .logo {
+        justify-content: center;
+        font-size: 1.15em;
+        text-align: center;
+    }
+
     .hero {
         padding: 60px 1rem;
         min-height: auto;
@@ -461,8 +516,21 @@ body {
     }
 
     .nav-links {
-        gap: 1rem;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
         font-size: 0.9em;
+    }
+
+    .nav-links li,
+    .nav-links a {
+        min-width: 0;
+        text-align: center;
+    }
+
+    .btn-login {
+        display: block;
     }
 
     .demo-full {
@@ -477,9 +545,27 @@ body {
         grid-template-columns: repeat(5, 1fr);
     }
 
+    .legend {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+    }
+
     .features-grid,
     .benefits-grid {
         grid-template-columns: 1fr;
+    }
+
+    .features,
+    .benefits,
+    .demo-section,
+    .contact {
+        padding: 56px 1rem;
+    }
+
+    .feature-card,
+    .benefit-item {
+        padding: 1.5rem;
     }
 
     .section-title {
@@ -488,16 +574,75 @@ body {
 }
 
 @media (max-width: 480px) {
+    .logo {
+        font-size: 1em;
+        gap: 7px;
+    }
+
+    .logo-icon {
+        width: 32px;
+        height: 32px;
+    }
+
     .hero-title {
         font-size: 1.5em;
     }
 
     .nav-links {
-        flex-direction: column;
-        gap: 0.5rem;
+        grid-template-columns: 1fr;
     }
 
     .btn {
         width: 100%;
+    }
+
+    .hero-buttons {
+        width: 100%;
+    }
+
+    .section-title {
+        font-size: 1.65em;
+        line-height: 1.25;
+    }
+
+    .section-subtitle {
+        margin-bottom: 2rem;
+        font-size: 1em;
+    }
+
+    .demo-full {
+        padding: 0.8rem;
+    }
+
+    .rooms-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .room-item {
+        padding: 0.7rem 0.3rem;
+    }
+
+    .legend {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .contact-info {
+        overflow-wrap: anywhere;
+    }
+
+    .footer {
+        padding: 1.5rem 1rem;
+    }
+
+    .back-to-top {
+        right: 16px;
+        bottom: 16px;
+        padding: 11px;
+    }
+
+    .back-to-top span:last-child {
+        display: none;
     }
 }

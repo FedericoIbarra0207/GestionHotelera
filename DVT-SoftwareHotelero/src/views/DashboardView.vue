@@ -55,12 +55,14 @@ const logout = () => {
 <style scoped>
 .dashboard-layout {
   display: flex;
+  /* En escritorio la navegación permanece fija; sólo el panel central desplaza. */
   height: 100vh;
   overflow: hidden;
 }
 
 .sidebar {
   width: 260px;
+  flex: 0 0 260px;
   background: var(--dark);
   color: white;
   display: flex;
@@ -118,6 +120,7 @@ const logout = () => {
   border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
+  white-space: nowrap;
   transition: background 0.3s;
 }
 
@@ -127,9 +130,16 @@ const logout = () => {
 
 .content {
   flex-grow: 1;
+  /* Permite que tablas y formularios se reduzcan dentro del panel central. */
+  min-width: 0;
   padding: 30px;
   background: var(--light);
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 900px) {
+  .content { padding: 20px; }
 }
 
 @media (max-width: 760px) {
@@ -143,14 +153,24 @@ const logout = () => {
     width: 100%;
   }
 
+  .sidebar-brand { padding: 5px; }
+  .nav-logo { width: 130px; }
+
   .nav-links {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     margin-top: 0;
   }
 
+  .nav-links li a {
+    padding: 11px 14px;
+    font-size: .95rem;
+  }
+
+  .btn-logout { margin: 12px; }
+
   .content {
-    padding: 20px;
+    padding: 14px;
   }
 }
 </style>

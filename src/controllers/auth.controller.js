@@ -32,3 +32,35 @@ export const loginUser = async (req, res, next) => {
         next(error); // Pasa el error al manejador de errores global
     }
 };
+
+/** POST /api/auth/forgot-password: solicita un correo de recuperación. */
+export const requestPasswordReset = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "El email es obligatorio." });
+        }
+
+        await authService.requestPasswordReset(email);
+        return res.status(200).json({
+            message: "Si el email esta registrado, recibiras un enlace para restablecer tu contrasena.",
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/** POST /api/auth/reset-password: consume un token temporal y guarda una nueva clave. */
+export const changePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, password } = req.body;
+        if (!currentPassword || !password) {
+            return res.status(400).json({ message: "La contrasena actual y la nueva son obligatorias." });
+        }
+
+        await authService.changePassword(req.user.id, currentPassword, password);
+        return res.status(200).json({ message: "Contrasena actualizada. Ya puedes iniciar sesion." });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -27,7 +27,7 @@ const handleLogin = async () => {
     // Estos datos los usan apiFetch para autorizar peticiones y el router para permisos.
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
-    router.push('/dashboard')
+    router.push(data.user.mustChangePassword ? '/change-password' : '/dashboard')
   } catch (error) {
     errorMessage.value = error.message || 'Error al iniciar sesion'
   } finally {
@@ -62,8 +62,9 @@ const handleLogin = async () => {
           {{ isLoading ? 'Ingresando...' : 'Ingresar' }}
         </button>
       </form>
-
-    
+      <p class="link-text">
+        <RouterLink :to="{ name: 'forgot-password' }">Olvide mi contrasena</RouterLink>
+      </p>
     </div>
   </div>
 </template>

@@ -30,6 +30,26 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
+/** Lista solicitudes pendientes para la revisión del administrador. */
+export const listPendingPasswordRecoveryRequests = async (req, res, next) => {
+  try {
+    res.status(200).json(await userService.getPendingPasswordRecoveryRequests());
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Asigna una contraseña temporal y obliga a modificarla en el próximo login. */
+export const assignTemporaryPassword = async (req, res, next) => {
+  try {
+    const { password, requestId } = req.body;
+    await userService.assignTemporaryPassword(req.params.id, password, req.user.id, requestId);
+    res.status(200).json({ message: 'Contrasena temporal asignada. El usuario debera cambiarla al ingresar.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Elimina usuario interno por id.
 export const deleteUser = async (req, res, next) => {
   try {

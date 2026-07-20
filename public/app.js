@@ -1,4 +1,18 @@
-/
+/** Botón de retorno visible al llegar a secciones inferiores de la landing comercial. */
+const backToTopButton = document.getElementById('backToTop');
+
+if (backToTopButton) {
+    const updateBackToTopVisibility = () => {
+        backToTopButton.classList.toggle('is-visible', window.scrollY > 420);
+    };
+
+    window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+    updateBackToTopVisibility();
+
+    backToTopButton.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
 
 // Smooth scroll para links internos - 
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {

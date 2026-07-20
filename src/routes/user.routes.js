@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { deleteUser, listUsers, registerNewUser, updateUser } from "../controllers/user.controller.js";
+import { assignTemporaryPassword, deleteUser, listPendingPasswordRecoveryRequests, listUsers, registerNewUser, updateUser } from "../controllers/user.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { roleMiddleware } from "../middlewares/role.middleware.js";
 
@@ -11,7 +11,9 @@ router.use(roleMiddleware("ADMIN"));
 
 // Endpoints consumidos desde UsuariosView.vue.
 router.get("/", listUsers);
+router.get('/password-recovery-requests', listPendingPasswordRecoveryRequests);
 router.post("/", registerNewUser);
+router.patch('/:id/temporary-password', assignTemporaryPassword);
 router.put("/:id", updateUser);
 router.delete("/:id", deleteUser);
 

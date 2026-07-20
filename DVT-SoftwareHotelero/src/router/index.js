@@ -7,6 +7,8 @@ import ReservasView from '../views/ReservasView.vue'
 import PagosView from '../views/PagosView.vue'
 import ConsumosView from '../views/ConsumosView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
+import ForgotPasswordView from '../views/ForgotPasswordView.vue'
+import ChangePasswordView from '../views/ChangePasswordView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,6 +26,16 @@ const router = createRouter({
     {
       path: '/registro',
       redirect: '/login'
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordView
+    },
+    {
+      path: '/change-password',
+      name: 'change-password',
+      component: ChangePasswordView
     },
     {
       path: '/dashboard',
@@ -76,6 +88,8 @@ router.beforeEach((to, from, next) => {
 
   if (to.path.startsWith('/dashboard') && !token) {
     next({ name: 'login' })
+  } else if (token && user.mustChangePassword && to.name !== 'change-password') {
+    next({ name: 'change-password' })
   } else if (to.path.startsWith('/dashboard/usuarios') && user.rol !== 'ADMIN') {
     next({ name: 'operativo' })
   } else {

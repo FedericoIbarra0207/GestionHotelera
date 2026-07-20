@@ -28,12 +28,36 @@ router.get(
     consumosController.obtenerPorId
 );
 
-// Actualizar consumo (solo admin)
+// Recepción puede corregir cargos operativos mientras sigan pendientes.
 router.put(
     "/:id",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN", "RECEPCIONISTA"),
     consumosController.actualizar
+);
+
+// Recepción confirma el cargo; el cobro real se registra después en /pagos.
+router.patch(
+    "/:id/incluir-en-cuenta",
+    authMiddleware,
+    roleMiddleware("ADMIN", "RECEPCIONISTA"),
+    consumosController.incluirEnCuenta
+);
+
+// Ruta antigua preservada para no romper integraciones; mantiene la misma semántica.
+router.patch(
+    "/:id/facturar",
+    authMiddleware,
+    roleMiddleware("ADMIN", "RECEPCIONISTA"),
+    consumosController.facturar
+);
+
+// Sólo ADMIN puede cerrar cargos y consolidar el historial facturable.
+router.patch(
+    "/:id/cerrar",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    consumosController.cerrar
 );
 
 // Eliminar consumo (solo admin)

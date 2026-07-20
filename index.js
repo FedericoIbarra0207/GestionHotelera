@@ -33,6 +33,7 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendDistPath = path.join(__dirname, 'DVT-SoftwareHotelero', 'dist');
+const landingPath = path.join(__dirname, 'public');
 
 // Lista blanca de origenes para CORS. Si no se configura, se permite el uso local
 // para no bloquear el entorno de desarrollo.
@@ -84,12 +85,14 @@ app.use("/api/pagos", pagosRoutes);
 app.use("/api/consumos", consumosRoutes);
 app.use("/api/disponibilidades", disponibilidadesRoutes);
 
-// En producción, el build de Vue se sirve desde el mismo origen que la API.
-// Esto simplifica el deploy y evita depender de CORS para el frontend.
-app.use(express.static(frontendDistPath));
-app.get('/{*splat}', (req, res) => {
+// La app interna se publica bajo /app. La página principal permanece como
+// landing comercial estática y dirige al usuario hacia /app/login.
+app.use('/app', express.static(frontendDistPath));
+app.get(['/app', '/app/{*splat}'], (req, res) => {
     res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
+
+app.use(express.static(landingPath));
 // --------------------------------------
 // MANEJO DE ERRORES
 // --------------------------------------
