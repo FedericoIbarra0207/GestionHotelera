@@ -18,6 +18,13 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--light);
@@ -27,5 +34,10 @@ body {
 
 #app {
   min-height: 100vh;
+  width: 100%;
 }
+
+/* Evita que imágenes o controles generen desborde horizontal en móviles. */
+img { max-width: 100%; }
+input, select, textarea, button { font: inherit; }
 </style>

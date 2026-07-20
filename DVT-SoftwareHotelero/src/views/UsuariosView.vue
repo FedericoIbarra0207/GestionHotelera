@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { apiFetch } from '../services/api'
 
 const usuarios = ref([])
+const solicitudesRecuperacion = ref([])
 const errorMessage = ref('')
 const successMessage = ref('')
 const isLoading = ref(true)
@@ -21,7 +22,12 @@ const form = ref({
 const cargarUsuarios = async () => {
   try {
     isLoading.value = true
-    usuarios.value = await apiFetch('/users')
+    const [usuariosData, solicitudesData] = await Promise.all([
+      apiFetch('/users'),
+      apiFetch('/users/password-recovery-requests')
+    ])
+    usuarios.value = usuariosData
+    solicitudesRecuperacion.value = solicitudesData
   } catch (error) {
     errorMessage.value = error.message || 'No se pudieron cargar los usuarios'
   } finally {
@@ -57,6 +63,25 @@ const eliminarUsuario = async (id) => {
   try {
     await apiFetch(`/users/${id}`, { method: 'DELETE' })
     successMessage.value = 'Usuario eliminado correctamente.'
+    await cargarUsuarios()
+  } catch (error) {
+    errorMessage.value = error.message
+  }
+}
+
+// El administrador entrega esta clave por un canal verificado; el backend sólo guarda su hash.
+const asignarClaveTemporal = async (usuario) => {
+  const password = prompt(`Nueva clave temporal para ${usuario.nombre} (mínimo 8 caracteres):`)
+  if (!password) return
+  try {
+    await apiFetch(`/users/${usuario.id}/temporary-password`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        password,
+        requestId: solicitudesRecuperacion.value.find((solicitud) => solicitud.userId === usuario.id)?.id
+      })
+    })
+    successMessage.value = 'Clave temporal asignada. El usuario deberá cambiarla al ingresar.'
     await cargarUsuarios()
   } catch (error) {
     errorMessage.value = error.message
@@ -100,7 +125,10 @@ onMounted(cargarUsuarios)
               <td>{{ usuario.nombre }}</td>
               <td>{{ usuario.email }}</td>
               <td><span class="badge">{{ usuario.rol }}</span></td>
-              <td><button class="btn-delete" @click="eliminarUsuario(usuario.id)">Eliminar</button></td>
+              <td>
+                <button class="btn-temp" @click="asignarClaveTemporal(usuario)">Clave temporal</button>
+                <button class="btn-delete" @click="eliminarUsuario(usuario.id)">Eliminar</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -154,6 +182,7 @@ input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-ra
 .btn-save { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
 .btn-save:disabled { background: #cbd5e0; cursor: not-allowed; }
 .btn-delete { background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+.btn-temp { background: #edf2ff; color: #4c51bf; border: 1px solid #c3dafe; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 6px; }
 .msg, .empty { padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; }
 .error { background: #fff5f5; color: #c53030; }
 .success { background: #f0fff4; color: #2f855a; }

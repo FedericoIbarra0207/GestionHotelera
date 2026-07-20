@@ -39,6 +39,27 @@ export const actualizar = async (req, res, next) => {
     }
 };
 
+/** PATCH /consumos/:id/cerrar: conserva el movimiento y lo envía a historial. */
+export const cerrar = async (req, res, next) => {
+    try {
+        res.json(await consumosService.cerrarConsumo(req.params.id));
+    } catch (err) {
+        next(err);
+    }
+};
+
+/** PATCH /consumos/:id/incluir-en-cuenta: confirma el cargo, no el pago. */
+export const incluirEnCuenta = async (req, res, next) => {
+    try {
+        res.json(await consumosService.incluirEnCuenta(req.params.id, req.user.id));
+    } catch (err) {
+        next(err);
+    }
+};
+
+/** Ruta heredada: conserva compatibilidad, con la semántica correcta de cuenta corriente. */
+export const facturar = incluirEnCuenta;
+
 export const eliminar = async (req, res, next) => {
     try {
         await consumosService.eliminarConsumo(req.params.id);

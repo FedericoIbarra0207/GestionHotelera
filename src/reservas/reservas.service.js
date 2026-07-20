@@ -4,6 +4,7 @@ import * as HuespedesModel from "../huespedes/huespedes.model.js";
 import { validarHuesped } from "../huespedes/huespedes.service.js";
 import * as DisponibilidadesService from "../disponibilidades/disponibilidades.service.js";
 import { sendReservationEmail } from "../services/email.service.js";
+import { getOperationalReservations } from '../services/operacion-reservas.service.js';
 
 const ESTADOS_ACTIVOS = ["pending", "confirmed", "checked_in"];
 const ESTADOS_VALIDOS = ["pending", "confirmed", "checked_in", "checked_out", "cancelled"];
@@ -231,7 +232,9 @@ export const crearReserva = async (data, usuarioToken) => {
 };
 
 export const listarReservas = async () => {
-  return await ReservasModel.getAll();
+  // La vista operativa comparte este cálculo con pagos y consumos, evitando
+  // archivar reservas que todavía tengan saldo o cargos sin cerrar.
+  return await getOperationalReservations();
 };
 
 export const obtenerReserva = async (id) => {

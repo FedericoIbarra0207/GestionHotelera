@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import * as userModel from "../models/user.model.js";
+import * as recoveryService from '../password-recovery/password-recovery.service.js';
 
 const SALT_ROUNDS = 10;
 const ROLES_VALIDOS = ["ADMIN", "RECEPCIONISTA"];
@@ -107,6 +108,34 @@ export const updateUser = async (userId, data) => {
   const updatedUser = await userModel.getUserById(userId);
   return toPublicUser(updatedUser);
 };
+
+/**
+ * Un ADMIN asigna una clave temporal tras validar la identidad del empleado.
+ * La clave nunca se guarda en la solicitud: sólo se persiste su hash bcrypt.
+ */
+export const assignTemporaryPassword = async (userId, password, adminId, requestId) => {
+  if (String(password || '').length < 8) {
+    const error = new Error('La contrasena temporal debe tener al menos 8 caracteres.');
+    error.status = 400;
+    throw error;
+  }
+  const user = await userModel.getUserById(userId);
+  if (!user) {
+    const error = new Error('Usuario no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  await userModel.updateUser(userId, {
+    password: await bcrypt.hash(String(password), SALT_ROUNDS),
+    mustChangePassword: true,
+    temporaryPasswordAssignedAt: new Date(),
+  });
+  await recoveryService.resolveRequest(requestId, adminId);
+};
+
+/** Devuelve solicitudes de recuperación pendientes, sin datos sensibles. */
+export const getPendingPasswordRecoveryRequests = async () => recoveryService.getPendingRequests();
 
 export const deleteUser = async (userId) => {
   const existingUser = await userModel.getUserById(userId);
