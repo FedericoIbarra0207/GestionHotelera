@@ -33,7 +33,7 @@ export const loginUser = async (req, res, next) => {
     }
 };
 
-/** POST /api/auth/forgot-password: solicita un correo de recuperación. */
+/** POST /api/auth/forgot-password: registra una solicitud interna para ADMIN. */
 export const requestPasswordReset = async (req, res, next) => {
     try {
         const { email } = req.body;
@@ -43,14 +43,14 @@ export const requestPasswordReset = async (req, res, next) => {
 
         await authService.requestPasswordReset(email);
         return res.status(200).json({
-            message: "Si el email esta registrado, recibiras un enlace para restablecer tu contrasena.",
+            message: "Si el email está registrado, el administrador recibirá la solicitud y podrá asignar una clave temporal.",
         });
     } catch (error) {
         next(error);
     }
 };
 
-/** POST /api/auth/reset-password: consume un token temporal y guarda una nueva clave. */
+/** POST /api/auth/change-password: valida la clave actual o temporal y guarda una nueva clave. */
 export const changePassword = async (req, res, next) => {
     try {
         const { currentPassword, password } = req.body;

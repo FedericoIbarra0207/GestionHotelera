@@ -69,8 +69,17 @@ const eliminarUsuario = async (id) => {
   }
 }
 
+/** Encuentra al usuario afectado para que ADMIN resuelva la solicitud desde la alerta. */
+const usuarioDeSolicitud = (solicitud) => {
+  return usuarios.value.find((usuario) => usuario.id === solicitud.userId)
+}
+
 // El administrador entrega esta clave por un canal verificado; el backend sólo guarda su hash.
-const asignarClaveTemporal = async (usuario) => {
+const asignarClaveTemporal = async (usuario, solicitud = null) => {
+  if (!usuario) {
+    errorMessage.value = 'La solicitud no está asociada a un usuario activo.'
+    return
+  }
   const password = prompt(`Nueva clave temporal para ${usuario.nombre} (mínimo 8 caracteres):`)
   if (!password) return
   try {
@@ -78,7 +87,7 @@ const asignarClaveTemporal = async (usuario) => {
       method: 'PATCH',
       body: JSON.stringify({
         password,
-        requestId: solicitudesRecuperacion.value.find((solicitud) => solicitud.userId === usuario.id)?.id
+        requestId: solicitud?.id || solicitudesRecuperacion.value.find((item) => item.userId === usuario.id)?.id
       })
     })
     successMessage.value = 'Clave temporal asignada. El usuario deberá cambiarla al ingresar.'
@@ -106,6 +115,18 @@ onMounted(cargarUsuarios)
 
     <p v-if="errorMessage" class="msg error">{{ errorMessage }}</p>
     <p v-if="successMessage" class="msg success">{{ successMessage }}</p>
+
+    <!-- Alerta operativa: sustituye el envío de correos por una cola visible para ADMIN. -->
+    <section v-if="solicitudesRecuperacion.length" class="recovery-alert">
+      <div>
+        <h3>Solicitudes de clave temporal ({{ solicitudesRecuperacion.length }})</h3>
+        <p>Verifica la identidad del usuario antes de asignar una clave temporal.</p>
+      </div>
+      <div v-for="solicitud in solicitudesRecuperacion" :key="solicitud.id" class="recovery-request">
+        <span><strong>{{ solicitud.email }}</strong> solicitó restablecimiento.</span>
+        <button class="btn-temp" @click="asignarClaveTemporal(usuarioDeSolicitud(solicitud), solicitud)">Asignar clave temporal</button>
+      </div>
+    </section>
 
     <div class="layout-grid">
       <div class="panel">
@@ -183,11 +204,15 @@ input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-ra
 .btn-save:disabled { background: #cbd5e0; cursor: not-allowed; }
 .btn-delete { background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
 .btn-temp { background: #edf2ff; color: #4c51bf; border: 1px solid #c3dafe; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 6px; }
+.recovery-alert { margin-bottom: 20px; padding: 18px; border: 1px solid #f6ad55; border-left: 5px solid #dd6b20; border-radius: 8px; background: #fffaf0; }
+.recovery-alert h3 { margin: 0; padding: 0; border: 0; color: #9c4221; }
+.recovery-alert p { margin: 4px 0 12px; color: #7c2d12; }
+.recovery-request { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #fed7aa; }
 .msg, .empty { padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; }
 .error { background: #fff5f5; color: #c53030; }
 .success { background: #f0fff4; color: #2f855a; }
 .empty { background: #f8fafc; color: #64748b; }
 .badge { display: inline-block; background: #edf2ff; color: #4c51bf; border-radius: 999px; padding: 4px 8px; font-size: 0.8rem; font-weight: 700; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 1024px) { .layout-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1024px) { .layout-grid { grid-template-columns: 1fr; } .recovery-request { align-items: flex-start; flex-direction: column; } }
 </style>

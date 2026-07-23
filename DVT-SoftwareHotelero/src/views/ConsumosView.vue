@@ -158,11 +158,6 @@ const etiquetaReserva = (reserva) => {
   return `${reserva.codigo || reserva.id.substring(0, 8)} - ${huesped}`
 }
 
-// Suma todos los consumos cargados.
-const totalConsumos = computed(() => {
-  return consumosFiltrados.value.reduce((total, consumo) => total + Number(consumo.monto || 0), 0)
-})
-
 /** Total pendiente de confirmación: todavía no integra el saldo a cobrar. */
 const totalPendienteConfirmacion = computed(() => {
   return consumos.value

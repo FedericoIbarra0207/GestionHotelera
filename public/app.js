@@ -81,6 +81,13 @@ document.querySelectorAll('.feature-card, .benefit-item').forEach(el => {
 });
 
 // Contador de stats (animación)
+/** Da formato a las métricas ficticias sin perder prefijos monetarios o porcentajes. */
+function formatStatValue(element, value) {
+    const prefix = element.dataset.prefix || '';
+    const suffix = element.dataset.suffix || '';
+    return `${prefix}${new Intl.NumberFormat('es-AR').format(Math.floor(value))}${suffix}`;
+}
+
 function animateCounter(element, target, duration = 2000) {
     let current = 0;
     const increment = target / (duration / 16);
@@ -91,7 +98,7 @@ function animateCounter(element, target, duration = 2000) {
             current = target;
             clearInterval(timer);
         }
-        element.textContent = Math.floor(current);
+        element.textContent = formatStatValue(element, current);
     }, 16);
 }
 
@@ -100,8 +107,9 @@ const statsElements = document.querySelectorAll('.stat-number');
 const statsObserver = new IntersectionObserver(function(entries) {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
-            const target = parseInt(entry.target.textContent);
-            animateCounter(entry.target, target);
+            const target = Number(entry.target.dataset.target);
+            // Conserva el texto inicial si un valor de ejemplo estuviera incompleto.
+            if (Number.isFinite(target)) animateCounter(entry.target, target);
             statsObserver.unobserve(entry.target);
         }
     });

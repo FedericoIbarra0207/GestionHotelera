@@ -23,7 +23,7 @@ export const upsertDisponibilidad = async (req, res, next) => {
 
 /**
  * GET /api/disponibilidades/:habitacionId
- * TODOS LOS ROLES
+ * ADMIN y RECEPCIONISTA
  */
 export const getDisponibilidad = async (req, res, next) => {
   try {
