@@ -88,6 +88,31 @@ function formatStatValue(element, value) {
     return `${prefix}${new Intl.NumberFormat('es-AR').format(Math.floor(value))}${suffix}`;
 }
 
+// En móvil la landing conserva una cabecera compacta y abre las opciones solo
+// cuando el visitante las necesita. El contenido y sus enlaces no cambian.
+const siteNav = document.getElementById('siteNav');
+const menuToggle = document.getElementById('menuToggle');
+const primaryNav = document.getElementById('primaryNav');
+
+if (siteNav && menuToggle && primaryNav) {
+    const closeCommercialMenu = () => {
+        siteNav.classList.remove('is-menu-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        menuToggle.setAttribute('aria-label', 'Abrir menú de navegación');
+    };
+
+    menuToggle.addEventListener('click', () => {
+        const isOpen = siteNav.classList.toggle('is-menu-open');
+        menuToggle.setAttribute('aria-expanded', String(isOpen));
+        menuToggle.setAttribute('aria-label', isOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación');
+    });
+
+    primaryNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeCommercialMenu));
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) closeCommercialMenu();
+    });
+}
+
 function animateCounter(element, target, duration = 2000) {
     let current = 0;
     const increment = target / (duration / 16);

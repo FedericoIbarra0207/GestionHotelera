@@ -163,6 +163,7 @@ onMounted(cargarDatos)
 
       <div class="panel">
         <h3>Proximas reservas</h3>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Próximas reservas. Desplaza horizontalmente para ver todas las columnas.">
         <table class="tabla-custom">
           <thead>
             <tr>
@@ -185,6 +186,7 @@ onMounted(cargarDatos)
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </template>
   </section>

@@ -10,6 +10,8 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const isSubmitting = ref(false)
 const habitacionEditandoId = ref(null)
+// Por defecto recepción ve las habitaciones que requieren atención inmediata.
+const vistaHabitaciones = ref('OCUPADA')
 
 // Usuario logueado. Se usa para permitir agregar habitaciones solo a ADMIN.
 const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -172,6 +174,20 @@ const resumen = computed(() => {
   return { total, ocupadas, proximas, disponibles, mantenimiento, ocupacion }
 })
 
+/** Filtra la grilla por estado para evitar una lista extensa en hoteles grandes. */
+const habitacionesFiltradas = computed(() => {
+  if (vistaHabitaciones.value === 'TODAS') return habitaciones.value
+  return habitaciones.value.filter((habitacion) => estadoOperativo(habitacion).estado === vistaHabitaciones.value)
+})
+
+const etiquetaVista = (estado) => ({
+  TODAS: 'todas las habitaciones',
+  OCUPADA: 'habitaciones ocupadas',
+  DISPONIBLE: 'habitaciones disponibles',
+  PROXIMA: 'habitaciones con próxima reserva',
+  MANTENIMIENTO: 'habitaciones en mantenimiento'
+}[estado] || 'habitaciones')
+
 // Valida campos minimos antes de habilitar "Agregar habitacion".
 const formInvalido = computed(() => {
   return !habitacionForm.value.numero ||
@@ -193,22 +209,26 @@ onMounted(cargarDatos)
 <template>
   <section class="habitaciones-section">
     <div class="metrics-grid">
-      <div class="metric-card">
+      <button type="button" class="metric-card" :class="{ active: vistaHabitaciones === 'TODAS' }" @click="vistaHabitaciones = 'TODAS'">
         <h3>{{ resumen.total }}</h3>
-        <p>Habitaciones totales</p>
-      </div>
-      <div class="metric-card">
+        <p>Todas las habitaciones</p>
+      </button>
+      <button type="button" class="metric-card" :class="{ active: vistaHabitaciones === 'OCUPADA' }" @click="vistaHabitaciones = 'OCUPADA'">
         <h3>{{ resumen.ocupadas }}</h3>
         <p>Ocupadas hoy</p>
-      </div>
-      <div class="metric-card">
+      </button>
+      <button type="button" class="metric-card" :class="{ active: vistaHabitaciones === 'DISPONIBLE' }" @click="vistaHabitaciones = 'DISPONIBLE'">
         <h3>{{ resumen.disponibles }}</h3>
         <p>Disponibles</p>
-      </div>
-      <div class="metric-card">
+      </button>
+      <button type="button" class="metric-card" :class="{ active: vistaHabitaciones === 'PROXIMA' }" @click="vistaHabitaciones = 'PROXIMA'">
         <h3>{{ resumen.proximas }}</h3>
         <p>Proximas reservas</p>
-      </div>
+      </button>
+      <button type="button" class="metric-card" :class="{ active: vistaHabitaciones === 'MANTENIMIENTO' }" @click="vistaHabitaciones = 'MANTENIMIENTO'">
+        <h3>{{ resumen.mantenimiento }}</h3>
+        <p>En mantenimiento</p>
+      </button>
     </div>
 
     <p v-if="errorMessage" class="msg error">{{ errorMessage }}</p>
@@ -217,7 +237,11 @@ onMounted(cargarDatos)
     <div class="content-grid">
       <div class="panel">
         <div class="header-title">
-          <h2>Estado de habitaciones en tiempo real</h2>
+          <div>
+            <h2>Estado operativo de habitaciones</h2>
+            <p>Mostrando {{ habitacionesFiltradas.length }} {{ etiquetaVista(vistaHabitaciones) }}.</p>
+          </div>
+          <button type="button" class="btn-refresh" @click="cargarDatos">Actualizar</button>
         </div>
 
         <div v-if="loadingInfo" class="loading-state">
@@ -225,9 +249,9 @@ onMounted(cargarDatos)
         </div>
 
         <div v-else>
-          <div class="rooms-grid">
+          <div class="rooms-grid" aria-live="polite">
             <div
-              v-for="hab in habitaciones"
+              v-for="hab in habitacionesFiltradas"
               :key="hab.id"
               class="room-block"
               :class="obtenerClaseEstado(hab)"
@@ -242,6 +266,8 @@ onMounted(cargarDatos)
               </div>
             </div>
           </div>
+
+          <p v-if="habitacionesFiltradas.length === 0" class="empty-rooms">No hay {{ etiquetaVista(vistaHabitaciones) }} en este momento.</p>
 
           <div class="leyenda">
             <div class="leyenda-item"><span class="dot bg-disponible"></span> Disponible</div>
@@ -314,12 +340,18 @@ onMounted(cargarDatos)
 <style scoped>
 .habitaciones-section { display: flex; flex-direction: column; gap: 25px; animation: fadeIn 0.5s ease; }
 .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
-.metric-card { background: white; color: var(--dark); padding: 22px 18px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); }
+.metric-card { background: white; color: var(--dark); padding: 22px 18px; border: 0; border-left: 5px solid var(--primary); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: left; cursor: pointer; font: inherit; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+.metric-card:hover, .metric-card:focus-visible, .metric-card.active { background: #eef1ff; box-shadow: 0 6px 14px rgba(85,104,211,.16); outline: none; }
+.metric-card:hover { transform: translateY(-2px); }
 .metric-card h3 { font-size: 2rem; margin: 0 0 6px 0; font-weight: bold; }
 .metric-card p { margin: 0; font-size: 0.95rem; color: #64748b; }
 .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
 .panel { background: white; border-radius: 8px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-.header-title h2, .panel h2 { font-size: 1.2rem; color: var(--dark); margin: 0 0 18px; font-weight: bold; }
+.header-title { display: flex; align-items: start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.header-title h2, .panel h2 { font-size: 1.2rem; color: var(--dark); margin: 0; font-weight: bold; }
+.header-title p { color: #64748b; font-size: .9rem; margin: 4px 0 0; }
+.btn-refresh { border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: var(--primary-dark); padding: 8px 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.btn-refresh:hover { background: #eef1ff; }
 .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; }
 .room-block { color: white; min-height: 154px; text-align: center; padding: 18px 14px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; }
 .room-block strong { font-size: 1.6rem; line-height: 1; }
@@ -342,8 +374,27 @@ input, select, textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0;
 .btn-save:disabled { background: #cbd5e0; cursor: not-allowed; }
 .btn-cancel { background: #edf2f7; color: #334155; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 .loading-state, .msg { background: white; border-radius: 8px; padding: 14px; color: #64748b; }
+.empty-rooms { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; color: #64748b; padding: 18px; text-align: center; }
 .error { background: #fff5f5; color: #c53030; }
 .success { background: #f0fff4; color: #2f855a; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 1024px) { .content-grid, .form-row { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .metric-card { padding: 14px 12px; }
+  .metric-card h3 { font-size: 1.5rem; }
+  .metric-card p { font-size: .8rem; }
+  .panel { padding: 16px; }
+  .header-title { align-items: center; }
+  .header-title h2 { font-size: 1.05rem; }
+  .header-title p { font-size: .8rem; }
+  .rooms-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .room-block { min-height: 124px; padding: 12px 8px; }
+  .room-block strong { font-size: 1.35rem; }
+  .room-block span, .room-block small { font-size: .75rem; margin-top: 5px; }
+  .room-actions { margin-top: 8px; }
+  .room-actions button { padding: 5px 6px; font-size: .75rem; }
+  .leyenda { gap: 10px; padding-top: 12px; }
+  .leyenda-item { font-size: .8rem; }
+}
 </style>

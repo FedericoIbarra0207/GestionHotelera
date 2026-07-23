@@ -82,19 +82,23 @@ const router = createRouter({
 // Guardia global de rutas:
 // - bloquea el dashboard si no hay token
 // - bloquea Usuarios si el usuario no es ADMIN
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   if (to.path.startsWith('/dashboard') && !token) {
-    next({ name: 'login' })
-  } else if (token && user.mustChangePassword && to.name !== 'change-password') {
-    next({ name: 'change-password' })
-  } else if (to.path.startsWith('/dashboard/usuarios') && user.rol !== 'ADMIN') {
-    next({ name: 'operativo' })
-  } else {
-    next()
+    return { name: 'login' }
   }
+
+  if (token && user.mustChangePassword && to.name !== 'change-password') {
+    return { name: 'change-password' }
+  }
+
+  if (to.path.startsWith('/dashboard/usuarios') && user.rol !== 'ADMIN') {
+    return { name: 'operativo' }
+  }
+
+  return true
 })
 
 export default router
