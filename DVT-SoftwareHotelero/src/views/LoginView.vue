@@ -63,7 +63,7 @@ const handleLogin = async () => {
         </button>
       </form>
       <p class="link-text">
-        <RouterLink :to="{ name: 'forgot-password' }">Olvide mi contrasena</RouterLink>
+        <RouterLink :to="{ name: 'forgot-password' }">Solicitar clave temporal</RouterLink>
       </p>
     </div>
   </div>

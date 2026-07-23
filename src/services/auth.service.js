@@ -50,8 +50,8 @@ export const login = async (email, password) => {
 /**
  * Registra una solicitud de recuperación para una cuenta existente.
  *
- * La ausencia de usuario no genera error para evitar enumerar correos. El token
- * La resolución requiere validación de identidad por parte de un ADMIN.
+ * La ausencia de usuario no genera error para evitar enumerar correos. La
+ * resolución requiere validación de identidad por parte de un ADMIN.
  * @param {string} email Correo informado por el usuario.
  * @returns {Promise<void>}
  */

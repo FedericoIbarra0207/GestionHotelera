@@ -13,12 +13,12 @@ const router = Router();
 
 /**
  * VER disponibilidades
- * ADMIN - RECEPCIONISTA - CLIENTE
+ * ADMIN - RECEPCIONISTA
  */
 router.get(
   "/:habitacionId",
   authMiddleware,
-  roleMiddleware("ADMIN", "RECEPCIONISTA", "CLIENTE"),
+  roleMiddleware("ADMIN", "RECEPCIONISTA"),
   getDisponibilidad
 );
 
