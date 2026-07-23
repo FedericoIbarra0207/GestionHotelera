@@ -97,7 +97,9 @@ const editarHabitacion = (habitacion) => {
     tipo: habitacion.tipo || '',
     precio: Number(habitacion.precio || 0),
     capacidad: Number(habitacion.capacidad || 1),
-    estado: habitacion.estado || 'DISPONIBLE',
+    // La ocupación se deriva de las reservas activas; no se edita manualmente.
+    // Esto además normaliza registros antiguos que pudieran tener "OCUPADA".
+    estado: habitacion.estado === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'DISPONIBLE',
     descripcion: habitacion.descripcion || '',
     amenities: Array.isArray(habitacion.amenities) ? habitacion.amenities.join(', ') : (habitacion.amenities || ''),
     piso: habitacion.piso || ''
@@ -301,12 +303,12 @@ onMounted(cargarDatos)
           </div>
           <div class="form-row">
             <div class="field">
-              <label>Estado</label>
+              <label>Estado manual</label>
               <select v-model="habitacionForm.estado">
                 <option value="DISPONIBLE">Disponible</option>
-                <option value="OCUPADA">Ocupada</option>
                 <option value="MANTENIMIENTO">Mantenimiento</option>
               </select>
+              <small class="field-help">La ocupación se actualiza automáticamente mediante reservas y check-in.</small>
             </div>
             <div class="field">
               <label>Piso</label>
@@ -370,6 +372,7 @@ onMounted(cargarDatos)
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
 input, select, textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-family: inherit; }
+.field-help { display: block; margin-top: 6px; color: #64748b; font-size: .78rem; line-height: 1.35; }
 .btn-save { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
 .btn-save:disabled { background: #cbd5e0; cursor: not-allowed; }
 .btn-cancel { background: #edf2f7; color: #334155; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
