@@ -99,12 +99,20 @@ img { max-width: 100%; }
     font-weight: bold;
     color: var(--primary);
     gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
 
 .logo-icon {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
+}
+
+.logo:hover .logo-text,
+.logo:focus-visible .logo-text {
+    color: var(--primary-dark);
 }
 
 .nav-links {
@@ -130,6 +138,13 @@ img { max-width: 100%; }
     color: var(--white);
     padding: 8px 20px;
     border-radius: 8px;
+}
+
+/* Mantiene el contraste del CTA aunque la regla general del menú responda al hover. */
+.nav-links .btn-login:hover,
+.nav-links .btn-login:focus-visible,
+.nav-links .btn-login:active {
+    color: var(--white);
 }
 
 /* ===== HERO SECTION ===== */
@@ -314,6 +329,11 @@ img { max-width: 100%; }
     color: var(--white);
 }
 
+.room-item.upcoming {
+    background: #6277e8;
+    color: var(--white);
+}
+
 .room-item.maintenance {
     background: #f39c12;
     color: var(--white);
@@ -339,6 +359,10 @@ img { max-width: 100%; }
 
 .dot.available {
     background: #2ecc71;
+}
+
+.dot.upcoming {
+    background: #6277e8;
 }
 
 .dot.maintenance {
@@ -580,8 +604,8 @@ img { max-width: 100%; }
     }
 
     .logo-icon {
-        width: 32px;
-        height: 32px;
+        width: 38px;
+        height: 38px;
     }
 
     .hero-title {

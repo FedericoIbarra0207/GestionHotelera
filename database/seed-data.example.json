@@ -1,0 +1,80 @@
+{
+  "descripcion": "Datos ficticios para demostrar y replicar la estructura inicial de Firestore. No contiene credenciales, contrasenas ni datos personales reales.",
+  "habitaciones": [
+    {
+      "id": "demo-hab-101",
+      "numero": "101",
+      "tipo": "Doble estandar",
+      "precio": 85000,
+      "capacidad": 2,
+      "estado": "DISPONIBLE",
+      "piso": "1",
+      "descripcion": "Habitacion de demostracion para dos huespedes.",
+      "amenities": ["Wi-Fi", "TV", "Aire acondicionado"],
+      "fotos": []
+    },
+    {
+      "id": "demo-hab-202",
+      "numero": "202",
+      "tipo": "Suite",
+      "precio": 125000,
+      "capacidad": 3,
+      "estado": "DISPONIBLE",
+      "piso": "2",
+      "descripcion": "Suite de demostracion.",
+      "amenities": ["Wi-Fi", "TV", "Caja de seguridad"],
+      "fotos": []
+    }
+  ],
+  "huespedes": [
+    {
+      "id": "demo-huesped-ana",
+      "nombre": "Ana",
+      "apellido": "Pereyra",
+      "documento": "DEMO-30123456",
+      "telefono": "+54 11 5555-0101",
+      "email": "ana.pereyra.demo@example.com",
+      "nacionalidad": "Argentina",
+      "observaciones": "Registro ficticio para pruebas."
+    }
+  ],
+  "reservas": [
+    {
+      "id": "demo-reserva-ana",
+      "codigo": "DVT-DEMO-ANA01",
+      "huespedId": "demo-huesped-ana",
+      "habitacionId": "demo-hab-101",
+      "fechaInicio": "2026-08-10",
+      "fechaFin": "2026-08-13",
+      "estado": "confirmed",
+      "observaciones": "Reserva de demostracion para validar el flujo operativo."
+    }
+  ],
+  "consumos": [
+    {
+      "id": "demo-consumo-desayuno",
+      "reservaId": "demo-reserva-ana",
+      "categoria": "GASTRONOMIA",
+      "descripcion": "Desayuno continental para dos personas",
+      "monto": 18000,
+      "estado": "EN_CUENTA"
+    },
+    {
+      "id": "demo-consumo-lavanderia",
+      "reservaId": "demo-reserva-ana",
+      "categoria": "LAVANDERIA",
+      "descripcion": "Lavado y planchado de prendas",
+      "monto": 12000,
+      "estado": "PENDIENTE_FACTURACION"
+    }
+  ],
+  "pagos": [
+    {
+      "id": "demo-pago-sena",
+      "reservaId": "demo-reserva-ana",
+      "monto": 50000,
+      "metodo": "TRANSFERENCIA",
+      "estado": "CONFIRMADO"
+    }
+  ]
+}

@@ -10,10 +10,10 @@
     <!-- NAVBAR -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="logo">
+            <a class="logo" href="#inicio" aria-label="Volver al inicio de DVT Gestión Hotelera">
                 <img src="./img/dvt-logo.ico" alt="DVT" class="logo-icon">
                 <span class="logo-text">DVT Software de Gestión Hotelera</span>
-            </div>
+            </a>
             <ul class="nav-links">
                 <li><a href="#inicio">Inicio</a></li>
                 <li><a href="#caracteristicas">Qué Ofrecemos</a></li>
@@ -69,55 +69,56 @@
             <div class="feature-card">
                 <div class="feature-icon">🍽️</div>
                 <h3>Consumos Internos</h3>
-                <p>Registra servicios adicionales: minibar, room service, actividades del hotel.</p>
+                <p>Registra consumos adicionales de gastronomía, lavandería, estacionamiento, spa y otros servicios.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">📊</div>
-                <h3>Reportes & Analytics</h3>
-                <p>Datos visuales de tu negocio. Ocupación, ingresos, tendencias y más.</p>
+                <h3>Panel Operativo</h3>
+                <p>Supervisa reservas, ocupación y el flujo de check-in y check-out para acompañar la gestión diaria.</p>
             </div>
         </div>
     </section>
 
     <!-- DEMO INTERACTIVA -->
     <section id="demo" class="demo-section">
-        <h2 class="section-title">Estadísticas del Sistema</h2>
-        <p class="section-subtitle">Datos en tiempo real de un hotel usando nuestro software</p>
+        <h2 class="section-title">Vista operativa del sistema</h2>
+        <p class="section-subtitle">Ejemplo ilustrativo de indicadores y estados que se administran desde la aplicación.</p>
         
         <div class="demo-full">
             <div class="stats-preview">
                 <div class="stat">
-                    <div class="stat-number">87</div>
-                    <div class="stat-label">Reservas Este Mes</div>
+                    <div class="stat-number" data-target="87">87</div>
+                    <div class="stat-label">Reservas registradas</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">92</div>
-                    <div class="stat-label">% Ocupación Promedio</div>
+                    <div class="stat-number" data-target="92" data-suffix="%">92%</div>
+                    <div class="stat-label">Ocupación promedio</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">$48560</div>
-                    <div class="stat-label">Ingresos Totales</div>
+                    <div class="stat-number" data-target="485600" data-prefix="$ ">$ 485.600</div>
+                    <div class="stat-label">Ingresos confirmados</div>
                 </div>
             </div>
 
             <div class="rooms-preview">
-                <h4>Estado de Habitaciones en Tiempo Real</h4>
+                <h4>Estados operativos de habitaciones</h4>
                 <div class="rooms-grid">
                     <div class="room-item occupied">101</div>
                     <div class="room-item occupied">102</div>
                     <div class="room-item available">103</div>
-                    <div class="room-item occupied">104</div>
+                    <div class="room-item upcoming">104</div>
                     <div class="room-item maintenance">105</div>
                     <div class="room-item available">106</div>
                     <div class="room-item occupied">107</div>
                     <div class="room-item available">108</div>
-                    <div class="room-item occupied">109</div>
+                    <div class="room-item upcoming">109</div>
                     <div class="room-item occupied">110</div>
                 </div>
                 <div class="legend">
                     <span><span class="dot occupied"></span> Ocupada</span>
                     <span><span class="dot available"></span> Disponible</span>
+                    <span><span class="dot upcoming"></span> Próxima reserva</span>
                     <span><span class="dot maintenance"></span> Mantenimiento</span>
                 </div>
             </div>

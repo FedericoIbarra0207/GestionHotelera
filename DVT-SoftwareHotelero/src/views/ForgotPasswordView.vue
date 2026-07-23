@@ -8,8 +8,8 @@ const message = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
 
-// Envía el correo al backend. La respuesta es deliberadamente genérica para
-// no informar desde el navegador qué direcciones existen en el sistema.
+// Registra una solicitud interna. La respuesta es genérica para no revelar
+// desde el navegador qué direcciones existen en el sistema.
 const requestReset = async () => {
   isLoading.value = true
   message.value = ''
@@ -32,8 +32,8 @@ const requestReset = async () => {
 <template>
   <main class="auth-wrapper">
     <section class="auth-card">
-      <h2>Recuperar contrasena</h2>
-      <p class="description">Ingresa tu email para registrar la solicitud. Un administrador verificara tu identidad y te entregara una contrasena temporal.</p>
+      <h2>Solicitar clave temporal</h2>
+      <p class="description">Ingresa el email de tu cuenta. Si está registrado, un administrador verá la solicitud, verificará tu identidad y te entregará una clave temporal por un canal interno.</p>
       <form @submit.prevent="requestReset">
         <div class="form-group">
           <label for="reset-email">Email</label>
@@ -42,7 +42,7 @@ const requestReset = async () => {
         <p v-if="message" class="success-msg">{{ message }}</p>
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         <button type="submit" class="btn-primary" :disabled="isLoading">
-          {{ isLoading ? 'Registrando...' : 'Solicitar recuperacion' }}
+          {{ isLoading ? 'Registrando...' : 'Enviar solicitud al administrador' }}
         </button>
       </form>
       <p class="link-text"><RouterLink :to="{ name: 'login' }">Volver al inicio de sesion</RouterLink></p>
