@@ -205,25 +205,6 @@ El servicio se define en [render.yaml](render.yaml). Render ejecuta la instalaci
 
 La verificación de estado se realiza con `GET /api/health`.
 
-## Verificaciones antes de una entrega
-
-```powershell
-# Backend: sintaxis
-node --check index.js
-
-# Frontend: análisis y compilación
-Set-Location DVT-SoftwareHotelero
-npm run lint
-npm run build
-```
-
-Antes de crear un commit, comprobar además que ningún secreto se haya incorporado al área de staging:
-
-```powershell
-git status --short
-git diff --cached
-```
-
 ## Licencia
 
 Trabajo Final integrador para la Tecnicatura Superior en Desarrollo de Software del IFTS24. Ibarra Federico
