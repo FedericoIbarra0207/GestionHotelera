@@ -1,6 +1,9 @@
 import * as HabitacionesModel from "./habitaciones.model.js";
 
-const ESTADOS_VALIDOS = ["DISPONIBLE", "OCUPADA", "MANTENIMIENTO"];
+// "OCUPADA" no es un estado manual: se calcula a partir de una reserva activa
+// y su check-in. Desde el formulario solo se puede habilitar o poner fuera de
+// servicio una habitación.
+const ESTADOS_VALIDOS = ["DISPONIBLE", "MANTENIMIENTO"];
 
 // Normaliza datos que pueden venir del formulario como texto y valida reglas minimas.
 const normalizarHabitacion = (data) => {
