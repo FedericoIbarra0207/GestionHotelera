@@ -4,6 +4,7 @@ uploads/
 firebase-credentials.json
 .thesis-review/
 .final-build-check/
+.mobile-build-check/
 # Copia de trabajo del documento original y artefactos internos de revisión.
 docs/tesis/Proyecto Integrador IbarraFederico - borrador prefinal.docx
 docs/tesis/__pycache__/

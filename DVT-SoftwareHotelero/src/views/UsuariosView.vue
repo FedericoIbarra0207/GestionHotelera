@@ -132,7 +132,8 @@ onMounted(cargarUsuarios)
       <div class="panel">
         <h3>Equipo del sistema</h3>
         <div v-if="isLoading" class="empty">Cargando usuarios...</div>
-        <table v-else class="tabla-custom">
+        <div v-else class="table-scroll" tabindex="0" role="region" aria-label="Listado de usuarios. Desplaza horizontalmente para ver todas las columnas.">
+        <table class="tabla-custom">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -153,6 +154,7 @@ onMounted(cargarUsuarios)
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <div class="panel">

@@ -348,7 +348,8 @@ onMounted(cargarDatos)
         <button class="btn-clear" @click="limpiarFiltros">Limpiar</button>
       </div>
       <div v-if="isLoading" class="msg">Cargando reservas...</div>
-      <table v-else class="tabla-custom">
+      <div v-else class="table-scroll" tabindex="0" role="region" aria-label="Listado de reservas. Desplaza horizontalmente para ver todas las columnas.">
+      <table class="tabla-custom">
         <thead>
           <tr>
             <th>Codigo</th>
@@ -381,10 +382,12 @@ onMounted(cargarDatos)
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div class="panel listado canceladas">
       <h3>Reservas canceladas</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Reservas canceladas. Desplaza horizontalmente para ver todas las columnas.">
       <table class="tabla-custom">
         <thead>
           <tr>
@@ -415,6 +418,7 @@ onMounted(cargarDatos)
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </section>
 </template>

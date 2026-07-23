@@ -8,13 +8,17 @@
 </head>
 <body>
     <!-- NAVBAR -->
-    <nav class="navbar">
+    <nav class="navbar" id="siteNav">
         <div class="nav-container">
             <a class="logo" href="#inicio" aria-label="Volver al inicio de DVT Gestión Hotelera">
                 <img src="./img/dvt-logo.ico" alt="DVT" class="logo-icon">
                 <span class="logo-text">DVT Software de Gestión Hotelera</span>
             </a>
-            <ul class="nav-links">
+            <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Abrir menú de navegación">
+                <span aria-hidden="true">☰</span>
+                <span>Menú</span>
+            </button>
+            <ul class="nav-links" id="primaryNav">
                 <li><a href="#inicio">Inicio</a></li>
                 <li><a href="#caracteristicas">Qué Ofrecemos</a></li>
                 <li><a href="#beneficios">Por Qué Elegirnos</a></li>
