@@ -158,9 +158,9 @@ const etiquetaReserva = (reserva) => {
   return `${reserva.codigo || reserva.id.substring(0, 8)} - ${huesped}`
 }
 
-/** Total pendiente de confirmación: todavía no integra el saldo a cobrar. */
+/** Total pendiente dentro del filtro actual: todavía no integra el saldo a cobrar. */
 const totalPendienteConfirmacion = computed(() => {
-  return consumos.value
+  return consumosFiltrados.value
     .filter((consumo) => !['EN_CUENTA', 'FACTURADO', 'CERRADO'].includes(consumo.estado))
     .reduce((total, consumo) => total + Number(consumo.monto || 0), 0)
 })
@@ -202,8 +202,8 @@ const limpiarFiltros = () => {
 }
 
 const reservasConConsumos = computed(() => {
-  // Cuenta reservas unicas con consumos, no la cantidad total de items.
-  return new Set(consumos.value.map((consumo) => consumo.reservaId)).size
+  // Cuenta reservas únicas del filtro, no la cantidad total de ítems.
+  return new Set(consumosFiltrados.value.map((consumo) => consumo.reservaId)).size
 })
 
 // Al abrir o recargar la vista, no se conserva ningún filtro de una sesión previa.
@@ -226,15 +226,15 @@ definicion de lo que se ve en pantalla.
 
     <div class="summary">
       <div class="summary-item">
-        <span>Consumos registrados</span>
-        <strong>{{ consumos.length }}</strong>
+        <span>Consumos del filtro</span>
+        <strong>{{ consumosFiltrados.length }}</strong>
       </div>
       <div class="summary-item">
-        <span>Reservas con consumos</span>
+        <span>Reservas del filtro</span>
         <strong>{{ reservasConConsumos }}</strong>
       </div>
       <div class="summary-item highlight">
-        <span>Pendiente de confirmar</span>
+        <span>Pendiente del filtro</span>
         <strong>${{ totalPendienteConfirmacion }}</strong>
       </div>
     </div>
@@ -388,19 +388,10 @@ input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-ra
   .filters > input, .filters > select { flex: 1 1 220px; }
 }
 
-/* Con la barra lateral visible, una tabla de siete columnas deja de ser legible
-   en anchos medios. Aquí cada consumo se presenta como una ficha ordenada. */
+/* En anchos medios se conserva la tabla con desplazamiento horizontal para que
+   recepción pueda comparar las siete columnas sin perder encabezados. */
 @media (max-width: 1380px) {
-  .tabla-custom, .tabla-custom tbody, .tabla-custom tr, .tabla-custom td { display: block; width: 100%; }
-  .tabla-custom thead { display: none; }
-  .tabla-custom tr { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; margin-bottom: 14px; }
-  .tabla-custom td { display: grid; grid-template-columns: minmax(125px, 34%) 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid #edf2f7; text-align: right; }
-  .tabla-custom td:first-child { border-top: 0; }
-  .tabla-custom td::before { content: attr(data-label); color: #64748b; font-size: .78rem; font-weight: 700; text-align: left; text-transform: uppercase; }
-  .tabla-custom .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
-  .tabla-custom .actions::before { margin-right: auto; }
-  .tabla-custom .text-center { display: block; text-align: center; }
-  .tabla-custom .text-center::before { content: none; }
+  .table-scroll .tabla-custom { min-width: 820px; table-layout: auto; }
 }
 
 @media (max-width: 720px) {
@@ -410,7 +401,5 @@ input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-ra
   .filters { align-items: stretch; gap: 9px; }
   .tabs { display: grid; grid-template-columns: repeat(3, 1fr); }
   .tabs button, .filters > input, .filters > select, .btn-clear { width: 100%; }
-  .tabla-custom tr { padding: 6px 12px; }
-  .tabla-custom td { grid-template-columns: minmax(105px, 38%) 1fr; gap: 10px; padding: 9px 0; }
 }
 </style>

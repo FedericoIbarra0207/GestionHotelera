@@ -59,9 +59,19 @@ input, select, textarea, button { font: inherit; }
   outline-offset: 3px;
 }
 
-@media (max-width: 760px) {
-  .table-scroll .tabla-custom {
-    min-width: 720px;
+@media (max-width: 900px) {
+  /* Se fuerza un ancho de tabla real para que el gesto horizontal se aplique
+     al contenedor y no convierta filas en texto comprimido. */
+  #app .table-scroll {
+    display: block;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  #app .table-scroll .tabla-custom {
+    width: 760px;
+    min-width: 760px;
+    table-layout: auto;
   }
 
   .table-scroll::after {

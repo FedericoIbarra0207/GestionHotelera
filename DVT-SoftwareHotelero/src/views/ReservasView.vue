@@ -207,8 +207,11 @@ const huespedNombre = (reserva) => {
 }
 
 const reservasActivas = computed(() => {
-  // El backend decide el estado con checkout, saldo y consumos pendientes.
-  return reservas.value.filter((reserva) => vistaReservas.value === 'TODOS' || reserva.estadoOperativo === vistaReservas.value)
+  // Las canceladas se consultan en su listado separado, para no duplicarlas en
+  // la vista principal. El backend decide el estado operativo restante.
+  return reservas.value.filter((reserva) => {
+    return reserva.estado !== 'cancelled' && (vistaReservas.value === 'TODOS' || reserva.estadoOperativo === vistaReservas.value)
+  })
 })
 
 const reservasCanceladas = computed(() => {

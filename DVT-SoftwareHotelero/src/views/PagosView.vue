@@ -13,9 +13,9 @@ const successMessage = ref('')
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const esAdmin = computed(() => user.rol === 'ADMIN')
 const pagoEditandoId = ref(null)
-const vistaPagos = ref('TODOS')
 const filtroMes = ref('')
-const filtroEstado = ref('')
+const filtroSemana = ref('')
+const filtroReserva = ref('')
 
 // Formulario para registrar un pago sobre una reserva existente.
 const form = ref({
@@ -154,8 +154,11 @@ const consumosDeReserva = (reservaId) => {
   return consumos.value.filter((consumo) => consumo.reservaId === reservaId && estadosCobrables.includes(consumo.estado))
 }
 
+// Un pago sólo reduce el saldo y suma ingresos cuando fue confirmado.
+const pagoConfirmado = (pago) => (pago.estado || 'CONFIRMADO') === 'CONFIRMADO'
+
 const pagosDeReserva = (reservaId) => {
-  return pagos.value.filter((pago) => pago.reservaId === reservaId && pago.id !== pagoEditandoId.value)
+  return pagos.value.filter((pago) => pago.reservaId === reservaId && pago.id !== pagoEditandoId.value && pagoConfirmado(pago))
 }
 
 const detallePagoSugerido = computed(() => {
@@ -175,35 +178,91 @@ const detallePagoSugerido = computed(() => {
   return { noches, alojamiento, consumos: consumosTotal, pagado, total, saldo }
 })
 
-// Suma simple de todos los pagos cargados.
+// La tarjeta responde a todos los filtros y muestra el importe de los
+// movimientos visibles. El saldo de la reserva, en cambio, sólo descuenta
+// pagos confirmados mediante pagosDeReserva.
 const totalPagos = computed(() => {
   return pagosFiltrados.value.reduce((total, pago) => total + Number(pago.monto || 0), 0)
 })
 
-/** Lee fechas Firestore o ISO para filtrar sin modificar los movimientos. */
-const paymentDate = (pago) => {
-  const value = pago.createdAt?.toDate?.() || pago.createdAt
-  return value ? new Date(value) : null
+/** Normaliza fechas ISO, Date y timestamps serializados por Firestore en la API. */
+const normalizarFecha = (value) => {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+
+  if (typeof value === 'object') {
+    const seconds = Number(value.seconds ?? value._seconds)
+    if (Number.isFinite(seconds)) return new Date(seconds * 1000)
+  }
+
+  // Las fechas de reserva YYYY-MM-DD se interpretan localmente, sin corrimiento horario.
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? `${value}T00:00:00` : value)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
-/** Filtra el historial de cobros por estado, período y pestaña seleccionada. */
+/** Lee la fecha de alta del pago, incluso cuando Firestore la serializa en JSON. */
+const paymentDate = (pago) => {
+  const value = pago.createdAt?.toDate?.() || pago.createdAt
+  return normalizarFecha(value)
+}
+
+/** Fecha visible para auditar rápidamente qué período incluye cada cobro. */
+const formatoFechaPago = (pago) => {
+  const fecha = paymentDate(pago)
+  return fecha ? fecha.toLocaleDateString('es-AR') : 'Sin fecha'
+}
+
+/** Convierte una fecha al formato ISO que utiliza el control HTML type="week". */
+const isoWeekKey = (value) => {
+  if (!value || Number.isNaN(value.getTime())) return ''
+
+  const date = new Date(value)
+  date.setHours(0, 0, 0, 0)
+  // La semana ISO comienza el lunes y la semana 1 contiene el primer jueves.
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+  const firstThursday = new Date(date.getFullYear(), 0, 4)
+  firstThursday.setHours(0, 0, 0, 0)
+  firstThursday.setDate(firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7))
+  const week = 1 + Math.round((date - firstThursday) / 604800000)
+  return `${date.getFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+/** Aplica un único período activo: mes o semana, para resultados inequívocos. */
+const coincidePeriodo = (fecha) => {
+  if (!filtroMes.value && !filtroSemana.value) return true
+  if (!fecha) return false
+  if (filtroMes.value) return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}` === filtroMes.value
+  return isoWeekKey(fecha) === filtroSemana.value
+}
+
+/** Filtra cobros reales por período y por reserva, sin mezclar saldo pendiente
+ * (una deuda) con un pago efectivamente registrado. */
 const pagosFiltrados = computed(() => pagos.value.filter((pago) => {
   const fecha = paymentDate(pago)
-  const estado = pago.estado || 'CONFIRMADO'
-  const cumpleMes = !filtroMes.value || (fecha && `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}` === filtroMes.value)
-  const cumpleEstado = !filtroEstado.value || estado === filtroEstado.value
-  const cumpleVista = vistaPagos.value === 'TODOS' || (vistaPagos.value === 'HISTORIAL' && estado === 'CONFIRMADO') || (vistaPagos.value === 'OTROS' && estado !== 'CONFIRMADO')
-  return cumpleMes && cumpleEstado && cumpleVista
+  const cumpleReserva = !filtroReserva.value || pago.reservaId === filtroReserva.value
+  return coincidePeriodo(fecha) && cumpleReserva
 }))
 
-/** Reservas que requieren cobro, calculadas por el backend junto a su saldo. */
-const reservasPendientes = computed(() => reservas.value.filter((reserva) => Number(reserva.resumenFinanciero?.saldoPendiente || 0) > 0))
+/** Reservas que requieren cobro. El selector de reserva también acota este
+ * resumen para comparar deuda y movimientos del mismo huésped. */
+const reservasPendientes = computed(() => reservas.value.filter((reserva) => {
+  const tieneSaldo = Number(reserva.resumenFinanciero?.saldoPendiente || 0) > 0
+  // Una deuda no tiene fecha de pago; se ubica en el período de ingreso.
+  const fechaIngreso = normalizarFecha(reserva.fechaInicio)
+  return tieneSaldo && coincidePeriodo(fechaIngreso) && (!filtroReserva.value || reserva.id === filtroReserva.value)
+}))
+
+const saldoPendienteDelFiltro = computed(() => {
+  return reservasPendientes.value.reduce((total, reserva) => {
+    return total + Number(reserva.resumenFinanciero?.saldoPendiente || 0)
+  }, 0)
+})
 
 /** Restablece los cobros visibles sin cambiar registros financieros. */
 const limpiarFiltros = () => {
-  vistaPagos.value = 'TODOS'
   filtroMes.value = ''
-  filtroEstado.value = ''
+  filtroSemana.value = ''
+  filtroReserva.value = ''
 }
 
 watch(() => form.value.reservaId, () => {
@@ -230,8 +289,12 @@ onMounted(cargarDatos)
         <strong>{{ pagosFiltrados.length }}</strong>
       </div>
       <div class="summary-item">
-        <span>Total confirmado</span>
+        <span>Importe del filtro</span>
         <strong>${{ totalPagos }}</strong>
+      </div>
+      <div class="summary-item highlight">
+        <span>Saldo pendiente{{ filtroReserva ? ' de la reserva' : '' }}</span>
+        <strong>${{ saldoPendienteDelFiltro }}</strong>
       </div>
     </div>
 
@@ -239,9 +302,17 @@ onMounted(cargarDatos)
     <p v-if="successMessage" class="msg success">{{ successMessage }}</p>
 
     <div class="panel filters">
-      <div class="tabs"><button v-for="vista in ['TODOS', 'HISTORIAL', 'OTROS']" :key="vista" :class="{ active: vistaPagos === vista }" @click="vistaPagos = vista">{{ vista === 'TODOS' ? 'Todos' : vista === 'HISTORIAL' ? 'Historial confirmado' : 'Pendientes / otros' }}</button></div>
-      <input v-model="filtroMes" type="month">
-      <select v-model="filtroEstado"><option value="">Todos los estados</option><option value="CONFIRMADO">Confirmado</option><option value="PENDIENTE">Pendiente</option><option value="RECHAZADO">Rechazado</option><option value="ANULADO">Anulado</option></select>
+      <div class="period-filter">
+        <label>Período del historial</label>
+        <div class="period-controls">
+          <label>Mes<input v-model="filtroMes" type="month" aria-label="Filtrar movimientos por mes" @change="filtroSemana = ''"></label>
+          <label>Semana<input v-model="filtroSemana" type="week" aria-label="Filtrar movimientos por semana" @change="filtroMes = ''"></label>
+        </div>
+      </div>
+      <select v-model="filtroReserva" aria-label="Filtrar pagos por reserva">
+        <option value="">Todas las reservas</option>
+        <option v-for="reserva in reservasCobrables" :key="reserva.id" :value="reserva.id">{{ etiquetaReserva(reserva) }}</option>
+      </select>
       <button type="button" class="btn-clear" @click="limpiarFiltros">Limpiar filtros</button>
     </div>
 
@@ -260,6 +331,7 @@ onMounted(cargarDatos)
           <thead>
             <tr>
               <th>Reserva</th>
+              <th>Fecha de pago</th>
               <th>Habitacion</th>
               <th>Metodo</th>
               <th>Monto</th>
@@ -270,6 +342,7 @@ onMounted(cargarDatos)
           <tbody>
             <tr v-for="pago in pagosFiltrados" :key="pago.id">
               <td>{{ pago.reservaSnapshot?.codigo || pago.reservaId }}</td>
+              <td>{{ formatoFechaPago(pago) }}</td>
               <td>Hab. {{ pago.reservaSnapshot?.habitacion?.numero || habitacionDeReserva(pago.reservaId) }}</td>
               <td>{{ pago.metodo }}</td>
               <td>${{ pago.monto }}</td>
@@ -280,7 +353,7 @@ onMounted(cargarDatos)
               </td>
             </tr>
             <tr v-if="pagosFiltrados.length === 0">
-              <td :colspan="esAdmin ? 6 : 5" class="text-center">No hay pagos registrados.</td>
+              <td :colspan="esAdmin ? 7 : 6" class="text-center">No hay pagos registrados.</td>
             </tr>
           </tbody>
         </table>
@@ -362,6 +435,11 @@ input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-ra
 .payment-breakdown div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; color: #475569; }
 .payment-breakdown .total { border-top: 1px solid #e2e8f0; margin-top: 4px; padding-top: 9px; color: var(--dark); }
 .filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.period-filter { display: flex; flex-direction: column; gap: 4px; }
+.period-filter label { margin: 0; color: #475569; font-size: .82rem; }
+.period-controls { display: flex; gap: 8px; }
+.period-controls label { display: flex; flex-direction: column; gap: 3px; }
+.period-controls input { width: auto; min-width: 150px; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tabs button { border: 1px solid #cbd5e0; background: #fff; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
 .tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
