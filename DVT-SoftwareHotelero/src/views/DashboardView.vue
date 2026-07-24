@@ -64,6 +64,20 @@ const logout = () => {
       <button @click="logout" class="btn-logout">Cerrar sesion</button>
     </nav>
 
+    <!-- Acceso persistente en móvil: permite cambiar de módulo aun estando al final de una vista. -->
+    <button
+      v-if="!mobileMenuOpen"
+      class="mobile-menu-fab"
+      type="button"
+      :aria-expanded="mobileMenuOpen"
+      :aria-label="mobileMenuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'"
+      aria-controls="dashboardNavigation"
+      @click="mobileMenuOpen = !mobileMenuOpen"
+    >
+      <span aria-hidden="true">{{ mobileMenuOpen ? '×' : '☰' }}</span>
+      <span>{{ mobileMenuOpen ? 'Cerrar' : 'Menú' }}</span>
+    </button>
+
     <main class="content">
       <RouterView />
     </main>
@@ -103,6 +117,7 @@ const logout = () => {
 }
 
 .sidebar-toggle { display: none; }
+.mobile-menu-fab { display: none; }
 
 .nav-links {
   list-style: none;
@@ -180,6 +195,18 @@ const logout = () => {
     z-index: 20;
   }
 
+  /* Al abrirse desde el botón flotante, el menú se muestra aunque la cabecera
+     original haya quedado fuera de la pantalla durante el desplazamiento. */
+  .sidebar.is-open {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
   .sidebar-brand {
     padding: 5px 12px;
     justify-content: space-between;
@@ -218,6 +245,27 @@ const logout = () => {
 
   .btn-logout { display: none; margin: 12px; }
   .sidebar.is-open .btn-logout { display: block; }
+
+  .mobile-menu-fab {
+    position: fixed;
+    right: 16px;
+    bottom: 18px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 0;
+    border-radius: 999px;
+    padding: 11px 15px;
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 5px 16px rgba(15, 23, 42, .32);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-menu-fab:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
 
   .content {
     padding: 14px;
